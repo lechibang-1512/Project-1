@@ -1,4 +1,4 @@
-// dbQueries.js
+// dbqueries.js
 const { performance } = require('perf_hooks');
 
 // Helper function for database queries and performance measuring

@@ -4,7 +4,7 @@ const path = require('path');
 const bodyParser = require('body-parser');
 const auth = require('./auth');
 const errors = require('./errors');
-const dbQueries = require('./dbQueries');  // Import the query functions
+const dbqueries = require('./dbqueries');  // Import the query functions
 const app = express();
 
 // --- Configuration ---
@@ -45,12 +45,12 @@ app.use(async (req, res, next) => {
 // --- Route Handlers ---
 
 // Products Route with Filtering
-app.get('/products', ensureAuthenticated, async (req, res, next) => {
+app.get('/products', async (req, res, next) => {
     try {
         const filters = { brand: req.query.brand, model: req.query.model };
-        const products = await dbQueries.getProducts(req.db, filters);
-        const brands = await dbQueries.getBrands(req.db);
-        const models = await dbQueries.getModels(req.db);
+        const products = await dbqueries.getProducts(req.db, filters);
+        const brands = await dbqueries.getBrands(req.db);
+        const models = await dbqueries.getModels(req.db);
 
         res.render('products', {
             products,
@@ -66,9 +66,9 @@ app.get('/products', ensureAuthenticated, async (req, res, next) => {
 });
 
 // Single Product Details Route
-app.get('/product/:id', ensureAuthenticated, async (req, res, next) => {
+app.get('/product/:id', async (req, res, next) => {
     try {
-        const product = await dbQueries.getProductById(req.db, req.params.id);
+        const product = await dbqueries.getProductById(req.db, req.params.id);
 
         if (!product || product.length === 0) {
             return res.status(404).render('error', { message: 'Product not found' });
@@ -82,9 +82,9 @@ app.get('/product/:id', ensureAuthenticated, async (req, res, next) => {
 });
 
 // Purchase History Route
-app.get('/purchaseHistory', ensureAuthenticated, async (req, res, next) => {
+app.get('/purchaseHistory', async (req, res, next) => {
     try {
-        const orders = await dbQueries.getPurchaseHistory(req.db);
+        const orders = await dbqueries.getPurchaseHistory(req.db);
 
         function getTopItems(salesData, count = 1) {
             const sortedEntries = Object.entries(salesData)
