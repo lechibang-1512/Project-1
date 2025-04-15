@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const mysql = require('mysql2/promise');
 const path = require('path');
@@ -8,19 +9,16 @@ const dbqueries = require('./dbqueries');  // Import the query functions
 const app = express();
 
 // --- Configuration ---
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 const DB_CONFIG = {
-    host: 'localhost',
-    user: 'root',
-    password: '1212',
-    database: 'master_specs_db',
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_DATABASE,
 };
 
 // --- Middleware Setup ---
-app.set('viewEngine', 'ejs');
+app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -42,7 +40,34 @@ app.use(async (req, res, next) => {
     }
 });
 
+// Start the server
+app.listen(PORT, () => {
+    console.log(`Server listening on port ${PORT}`);
+  });
+
+
 // --- Route Handlers ---
+
+// Root route - redirect to homepage
+app.get('/', (req, res) => {
+    res.redirect('/homepage');
+});
+
+// Homepage route
+app.get('/homepage', (req, res) => {
+    res.render('homepage');
+});
+
+// Customer Info Route
+app.get('/customerInfo', async (req, res, next) => {
+    try {
+        const customers = await dbqueries.getCustomerInfo(req.db);
+        res.render('customerInfo', { customers });
+    } catch (error) {
+        console.error('Error fetching customer info:', error);
+        next(error);
+    }
+});
 
 // Products Route with Filtering
 app.get('/products', async (req, res, next) => {
