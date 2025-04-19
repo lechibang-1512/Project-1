@@ -1,21 +1,15 @@
-require('dotenv').config();
 const express = require('express');
-const { MongoClient, ObjectId } = require('mongodb'); // <-- Import MongoClient & ObjectId
+const { MongoClient, ObjectId } = require('mongodb');
 const path = require('path');
 const bodyParser = require('body-parser');
-const auth = require('./auth');
 const errors = require('./errors');
 const dbqueries = require('./dbqueries');
 const app = express();
 
-// --- Configuration ---
-const PORT = process.env.PORT || 3001;
-const DB_CONFIG = {
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_DATABASE,
-};
+// --- Configuration (hardcoded instead of from .env) ---
+const PORT = 3001;
+const MONGO_URI = 'mongodb://localhost:27017';
+const DB_NAME = 'master_specs_db';
 
 // --- Middleware Setup ---
 app.set('view engine', 'ejs');
@@ -23,7 +17,6 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-app.use(auth.sessionMiddleware); // Keep session middleware if needed
 
 // --- MongoDB Connection ---
 let db; // Variable to hold the database instance
@@ -51,13 +44,9 @@ app.use((req, res, next) => {
         console.error('Database not available');
         return res.status(500).render('error', { message: errors.DATABASE_CONNECTION_ERROR });
     }
+    req.db = db;
+    next();
 });
-
-// Start the server
-app.listen(PORT, () => {
-    console.log(`Server listening on port ${PORT}`);
-  });
-
 
 // --- Route Handlers ---
 
@@ -134,9 +123,6 @@ app.get('/purchaseHistory', async (req, res, next) => {
         const historyData = await dbqueries.getPurchaseHistory(req.db);
 
         // --- Analysis Logic (Needs adaptation based on getPurchaseHistory output) ---
-        // The structure of historyData will be different from the SQL JOIN result.
-        // You'll need to adjust this calculation logic accordingly.
-        // For example, if getPurchaseHistory uses aggregation as shown in dbqueries.js:
         let totalSales = 0;
         let customerSales = {};
         let deviceSales = {};
@@ -196,7 +182,6 @@ app.get('/purchaseHistory', async (req, res, next) => {
     }
 });
 
-
 // --- Global Error Handler (Example) ---
 app.use((err, req, res, next) => {
     console.error("Global Error Handler:", err.message);
@@ -209,7 +194,6 @@ app.use((err, req, res, next) => {
         // error: process.env.NODE_ENV === 'development' ? err : {}
     });
 });
-
 
 // --- Start Server ---
 connectDB().then(() => {

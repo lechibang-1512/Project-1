@@ -16,7 +16,7 @@
     "ejs": "^3.1.10",
     "express": "^4.21.2",
     "express-session": "^1.18.1",
-    "mongodb": "^6.7.0",
+    "mongodb": "^6.15.0",
     "path": "^0.12.7"
   }
 }

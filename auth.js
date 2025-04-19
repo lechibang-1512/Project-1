@@ -1,44 +1,27 @@
-// auth.js
+// auth.js - Authentication removed
 
-const session = require('express-session');
-
-const ADMIN_CREDENTIALS = {
-  username: 'admin',
-  password: 'admin',
+// Empty middleware - just pass through
+const sessionMiddleware = (req, res, next) => {
+  next();
 };
 
-// Configure session middleware
-const sessionMiddleware = session({
-  secret: 'your_secret_key',  // Replace with a strong, secret key
-  resave: false,
-  saveUninitialized: true,
-  cookie: { secure: false }, // Set to true in production with HTTPS
-});
-
-function isAuthenticated(req) {
-    return !!req.session.isAdmin;
+// Always return true - no authentication
+function isAuthenticated() {
+  return true;
 }
 
-function loginAdmin(req, username, password) {
-    if (username === ADMIN_CREDENTIALS.username && password === ADMIN_CREDENTIALS.password) {
-        req.session.isAdmin = true;
-        return true;
-    }
-    return false;
+// Empty function stubs - no authentication
+function loginAdmin() {
+  return true;
 }
 
-function logoutAdmin(req) {
-    req.session.isAdmin = null;
-     req.session.destroy((err) => {
-       if (err) {
-           console.error('Error destroying session:', err);
-       }
-    });
+function logoutAdmin() {
+  // No-op
 }
 
 module.exports = {
-    sessionMiddleware,
-    isAuthenticated,
-    loginAdmin,
-    logoutAdmin
+  sessionMiddleware,
+  isAuthenticated,
+  loginAdmin,
+  logoutAdmin
 };

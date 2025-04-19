@@ -1,196 +1,101 @@
-const express = require('express');
-const { MongoClient, ObjectId } = require('mongodb'); // <-- Import MongoClient & ObjectId
-const path = require('path');
-const bodyParser = require('body-parser');
-const auth = require('./auth');
-const errors = require('./errors');
-const dbqueries = require('./dbqueries');
-const app = express();
+const { ObjectId } = require('mongodb');
 
-// --- Configuration ---
-const PORT = process.env.PORT || 3000;
-// Default MongoDB connection URI - replace if your setup is different
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017';
-const DB_NAME = 'master_specs_db'; // Or your preferred database name
+// --- Database Query Functions ---
 
-// --- Middleware Setup ---
-app.set('viewEngine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
-app.use(express.static(path.join(__dirname, 'public')));
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
-app.use(auth.sessionMiddleware); // Keep session middleware if needed
-
-// --- MongoDB Connection ---
-let db; // Variable to hold the database instance
-
-async function connectDB() {
+// Get all products with optional brand/model filters
+async function getProducts(db, filters = {}) {
     try {
-        const client = new MongoClient(MONGO_URI);
-        await client.connect();
-        db = client.db(DB_NAME);
-        console.log(`Successfully connected to MongoDB database: ${DB_NAME}`);
-
-        // Optional: Ensure collections and indexes exist (run once on startup)
-        // await dbqueries.setupCollections(db);
-
-    } catch (err) {
-        console.error('MongoDB connection error:', err);
-        process.exit(1); // Exit if database connection fails on startup
+        const query = {};
+        if (filters.brand) query.sm_maker = filters.brand;
+        if (filters.model) query.sm_name = filters.model;
+        
+        return await db.collection('products').find(query).toArray();
+    } catch (error) {
+        console.error("Error in getProducts:", error);
+        throw error;
     }
 }
 
-// --- Middleware to Attach DB to Request ---
-// This makes the 'db' object available in your route handlers via req.db
-app.use((req, res, next) => {
-    if (!db) {
-        console.error('Database not available');
-        return res.status(500).render('error', { message: errors.DATABASE_CONNECTION_ERROR });
-    }
-    req.db = db;
-    // Make ObjectId available in templates if needed for things like links
-    res.locals.ObjectId = ObjectId;
-    next();
-});
-
-
-// --- Route Handlers (Update signatures to potentially pass db) ---
-
-// Products Route
-app.get('/products', async (req, res, next) => {
+// Get unique brands for filtering
+async function getBrands(db) {
     try {
-        const filters = { brand: req.query.brand, model: req.query.model };
-        // Pass req.db to the query functions
-        const products = await dbqueries.getProducts(req.db, filters);
-        const brands = await dbqueries.getBrands(req.db);
-        const models = await dbqueries.getModels(req.db);
-
-        res.render('products', {
-            products,
-            brands,
-            models,
-            selectedBrand: req.query?.brand || '',
-            selectedModel: req.query?.model || ''
-        });
+        return await db.collection('products').aggregate([
+            { $group: { _id: "$sm_maker", sm_maker: { $first: "$sm_maker" } } },
+            { $sort: { sm_maker: 1 } }
+        ]).toArray();
     } catch (error) {
-        console.error('Error in /products route:', error);
-        next(error); // Pass error to the error handler
+        console.error("Error in getBrands:", error);
+        throw error;
     }
-});
+}
 
-// Single Product Details Route
-app.get('/product/:id', async (req, res, next) => {
+// Get unique models for filtering
+async function getModels(db) {
     try {
-        // Validate ID format before querying if needed
-        if (!ObjectId.isValid(req.params.id)) {
-             return res.status(400).render('error', { message: 'Invalid Product ID format' });
-        }
-        const product = await dbqueries.getProductById(req.db, req.params.id);
-
-        if (!product) { // findOne returns null if not found
-            return res.status(404).render('error', { message: 'Product not found' });
-        }
-
-        // MongoDB findOne returns a single document, no need for product[0]
-        res.render('productDetails', { product });
+        return await db.collection('products').aggregate([
+            { $group: { _id: "$sm_name", sm_name: { $first: "$sm_name" } } },
+            { $sort: { sm_name: 1 } }
+        ]).toArray();
     } catch (error) {
-        console.error('Error fetching product details:', error);
-        next(error);
+        console.error("Error in getModels:", error);
+        throw error;
     }
-});
+}
 
-// Purchase History Route
-app.get('/purchaseHistory', async (req, res, next) => {
+// Get a single product by ID
+async function getProductById(db, id) {
     try {
-        // This query will likely need significant changes depending on
-        // how you structure 'orders', 'customers', and 'products' in MongoDB.
-        // See dbqueries.js for an example using $lookup (aggregation).
-        const historyData = await dbqueries.getPurchaseHistory(req.db);
+        return await db.collection('products').findOne({ _id: new ObjectId(id) });
+    } catch (error) {
+        console.error("Error in getProductById:", error);
+        throw error;
+    }
+}
 
-        // --- Analysis Logic (Needs adaptation based on getPurchaseHistory output) ---
-        // The structure of historyData will be different from the SQL JOIN result.
-        // You'll need to adjust this calculation logic accordingly.
-        // For example, if getPurchaseHistory uses aggregation as shown in dbqueries.js:
-        let totalSales = 0;
-        let customerSales = {};
-        let deviceSales = {};
-        let numberOfOrders = 0;
+// Get all customer information
+async function getCustomerInfo(db) {
+    try {
+        return await db.collection('customers').find({}).toArray();
+    } catch (error) {
+        console.error("Error in getCustomerInfo:", error);
+        throw error;
+    }
+}
 
-        if (historyData && historyData.length > 0) {
-            numberOfOrders = historyData.length;
-            historyData.forEach(order => {
-                // Access nested data carefully - structure depends on your aggregation pipeline
-                const price = parseFloat(order.productDetails?.sm_price); // Example access
-                const customerInfo = order.customerInfo; // Example access
-                const productDetails = order.productDetails; // Example access
-
-                if (customerInfo && productDetails && !isNaN(price)) {
-                    totalSales += price;
-
-                    const customerName = `${customerInfo.first_name} ${customerInfo.last_name}`;
-                    customerSales[customerName] = (customerSales[customerName] || 0) + price;
-
-                    deviceSales[productDetails.sm_name] = (deviceSales[productDetails.sm_name] || 0) + price;
-                } else {
-                    console.warn(`Invalid data encountered in order: ${order._id}`);
+// Get purchase history with customer and product details
+async function getPurchaseHistory(db) {
+    try {
+        return await db.collection('orders').aggregate([
+            {
+                $lookup: {
+                    from: 'customers',
+                    localField: 'customer_id',
+                    foreignField: '_id',
+                    as: 'customerInfo'
                 }
-            });
-        }
-
-        // Helper function might need adjustment if data structure changes
-        function getTopItems(salesData, count = 1) {
-             const sortedEntries = Object.entries(salesData)
-                .sort(([, a], [, b]) => b - a)
-                .slice(0, count)
-                .map(([name, sales]) => ({ name, sales }));
-             return count === 1 ? sortedEntries[0]?.name || 'N/A' : sortedEntries;
-         }
-
-        const topCustomer = getTopItems(customerSales);
-        const topDevice = getTopItems(deviceSales);
-        const avgSalesPerCustomer = Object.keys(customerSales).length > 0 ? totalSales / Object.keys(customerSales).length : 0;
-        const topCustomers = getTopItems(customerSales, 5);
-        const topDevices = getTopItems(deviceSales, 5);
-
-        res.render('purchaseHistory', {
-            orders: historyData, // Pass the aggregated data
-            totalSales: totalSales,
-            topCustomer: topCustomer === 'N/A' ? "No Data Available" : topCustomer,
-            topDevice: topDevice === 'N/A' ? "No Data Available" : topDevice,
-            avgSalesPerCustomer: avgSalesPerCustomer,
-            numberOfOrders: numberOfOrders,
-            topCustomers: topCustomers,
-            topDevices: topDevices
-        });
-        // --- End Analysis Logic ---
-
+            },
+            { $unwind: '$customerInfo' },
+            {
+                $lookup: {
+                    from: 'products',
+                    localField: 'product_id',
+                    foreignField: '_id',
+                    as: 'productDetails'
+                }
+            },
+            { $unwind: '$productDetails' }
+        ]).toArray();
     } catch (error) {
-        console.error('Error fetching purchase history:', error);
-        next(error);
+        console.error("Error in getPurchaseHistory:", error);
+        throw error;
     }
-});
+}
 
-
-// --- Global Error Handler (Example) ---
-app.use((err, req, res, next) => {
-    console.error("Global Error Handler:", err.message);
-    console.error(err.stack);
-    // Determine status code from error if possible, otherwise default to 500
-    const statusCode = err.status || err.statusCode || 500;
-    res.status(statusCode).render('error', {
-        message: err.message || 'An unexpected error occurred.',
-        // Optionally pass the error stack in development
-        // error: process.env.NODE_ENV === 'development' ? err : {}
-    });
-});
-
-
-// --- Start Server ---
-connectDB().then(() => {
-    app.listen(PORT, () => {
-        console.log(`Server listening on port ${PORT}`);
-    });
-}).catch(err => {
-    // connectDB already logs the error and exits, but catch here for safety.
-    console.error("Failed to start server:", err);
-});
+module.exports = {
+    getProducts,
+    getBrands,
+    getModels,
+    getProductById,
+    getCustomerInfo,
+    getPurchaseHistory
+};
