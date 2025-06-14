@@ -1,0 +1,15 @@
+<%- include('partials/header', {title: title}) %>
+
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="alert alert-danger mt-5">
+            <h2><i class="fas fa-exclamation-triangle"></i> Error</h2>
+            <p class="lead"><%= error %></p>
+            <hr>
+            <p>Please try again or contact the administrator if this problem persists.</p>
+            <a href="/" class="btn btn-primary">Return to Home</a>
+        </div>
+    </div>
+</div>
+
+<%- include('partials/footer') %>

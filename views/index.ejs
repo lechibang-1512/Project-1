@@ -1,0 +1,68 @@
+<%- include('partials/header', {title: title}) %>
+
+<div class="row mb-4">
+    <div class="col">
+        <h1>Component Database Viewer</h1>
+        <p class="lead">Browse and search for computer components in the master specifications database.</p>
+    </div>
+</div>
+
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    <% tables.forEach(function(table) { 
+        const tableName = table.TABLE_NAME;
+        const displayName = tableName.replace('_specs', '').replace(/_/g, ' ');
+        const capitalizedName = displayName
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+            
+        let iconClass = 'fa-microchip';
+        let cardColor = 'primary';
+        
+        switch (tableName) {
+            case 'cpu_specs':
+                iconClass = 'fa-microchip';
+                cardColor = 'primary';
+                break;
+            case 'motherboard_specs':
+                iconClass = 'fa-server';
+                cardColor = 'success';
+                break;
+            case 'ram_specs':
+                iconClass = 'fa-memory';
+                cardColor = 'warning';
+                break;
+            case 'ssd_specs':
+                iconClass = 'fa-hdd';
+                cardColor = 'info';
+                break;
+            case 'psu_specs':
+                iconClass = 'fa-plug';
+                cardColor = 'danger';
+                break;
+            case 'case_specs':
+                iconClass = 'fa-desktop';
+                cardColor = 'dark';
+                break;
+            default:
+                iconClass = 'fa-cog';
+                cardColor = 'secondary';
+        }
+    %>
+        <div class="col">
+            <div class="card h-100 component-card border-<%= cardColor %>">
+                <div class="card-header bg-<%= cardColor %> text-white">
+                    <i class="fas <%= iconClass %> me-2"></i><%= capitalizedName %>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Browse and search <%= capitalizedName.toLowerCase() %> specifications.</p>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="/table/<%= tableName %>" class="btn btn-<%= cardColor %>">View Components</a>
+                </div>
+            </div>
+        </div>
+    <% }); %>
+</div>
+
+<%- include('partials/footer') %>

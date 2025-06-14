@@ -1,0 +1,66 @@
+/* style.css */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+}
+
+.card {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.table th {
+    background-color: #343a40;
+    color: white;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+.search-form {
+    background-color: #f1f1f1;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.badge-inventory {
+    font-size: 0.75rem;
+    padding: 0.35em 0.65em;
+}
+
+.pagination-container {
+    margin-top: 20px;
+}
+
+.component-card {
+    height: 100%;
+    transition: all 0.3s ease;
+}
+
+.component-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+}
+
+.record-count {
+    font-style: italic;
+    color: #6c757d;
+}
+
+.detail-row:nth-child(odd) {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.detail-label {
+    font-weight: bold;
+}

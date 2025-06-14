@@ -1,0 +1,100 @@
+<%- include('partials/header', {title: title}) %>
+
+<div class="row mb-3">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Home</a></li>
+                <li class="breadcrumb-item"><a href="/table/<%= tableName %>"><%= tableDisplayName %></a></li>
+                <li class="breadcrumb-item active" aria-current="page">Component Details</li>
+            </ol>
+        </nav>
+        <h1><%= componentName %></h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h3 class="card-title mb-0">Specifications</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <% let mainImageUrl = '#'; %>
+                    <div class="col-md-8">
+                        <dl class="row">
+                            <% columns.forEach(function(column) { 
+                                const colName = column.COLUMN_NAME;
+                                if (colName === 'id') return; // Skip ID field
+                                
+                                const displayName = colName.replace(/_/g, ' ');
+                                const capitalizedName = displayName
+                                    .split(' ')
+                                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                                    .join(' ');
+                                
+                                const value = component[colName];
+                                let displayValue = value;
+                                
+                                if (value === null || value === undefined) {
+                                    displayValue = 'N/A';
+                                } else if (colName === 'inventory') {
+                                    let badgeClass = 'bg-success';
+                                    if (value.toLowerCase().includes('low')) {
+                                        badgeClass = 'bg-warning text-dark';
+                                    } else if (value.toLowerCase().includes('out') || value.toLowerCase().includes('no')) {
+                                        badgeClass = 'bg-danger';
+                                    }
+                                    displayValue = `<span class="badge ${badgeClass}">${value}</span>`;
+                                } else if (typeof value === 'boolean' || column.COLUMN_TYPE.includes('tinyint(1)')) {
+                                    if (value === 1 || value === true) {
+                                        displayValue = '<i class="fas fa-check text-success"></i> Yes';
+                                    } else {
+                                        displayValue = '<i class="fas fa-times text-danger"></i> No';
+                                    }
+                                }
+                            %>
+                                <% if (value !== null && value !== undefined && value !== '') { %>
+                                    <dt class="col-sm-4 detail-label"><%= capitalizedName %></dt>
+                                    <dd class="col-sm-8 detail-value"><%- displayValue %></dd>
+                                <% } %>
+                            <% }); %>
+                        </dl>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <% if (mainImageUrl !== '#') { %>
+                            <img src="<%= mainImageUrl %>" alt="<%= componentName %>" class="img-fluid rounded">
+                        <% } else { %>
+                            <div class="p-5 bg-light rounded">
+                                <i class="fas fa-image fa-5x text-muted"></i>
+                                <p class="mt-3 text-muted">No image available</p>
+                            </div>
+                        <% } %>
+                        
+                        <% if (component.stock_quantity) { %>
+                            <div class="mt-3">
+                                <h5>Stock: <%= component.stock_quantity %></h5>
+                                <div class="progress">
+                                    <% 
+                                        const stockPercent = Math.min(100, Math.round((component.stock_quantity / 100) * 100)); 
+                                        let progressClass = 'bg-success';
+                                        if (stockPercent < 30) progressClass = 'bg-danger';
+                                        else if (stockPercent < 70) progressClass = 'bg-warning';
+                                    %>
+                                    <div class="progress-bar <%= progressClass %>" role="progressbar" style="width: <%= stockPercent %>%" 
+                                         aria-valuenow="<%= stockPercent %>" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-light">
+                <a href="/table/<%= tableName %>" class="btn btn-secondary">Back to List</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include('partials/footer') %>

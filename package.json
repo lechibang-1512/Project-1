@@ -1,9 +1,11 @@
 {
   "name": "project-1",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "MariaDB Component Viewer",
+  "main": "app.js",
   "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -17,5 +19,15 @@
   "bugs": {
     "url": "https://github.com/lechibang-1512/Project-1/issues"
   },
-  "homepage": "https://github.com/lechibang-1512/Project-1#readme"
+  "homepage": "https://github.com/lechibang-1512/Project-1#readme",
+  "dependencies": {
+    "body-parser": "^2.2.0",
+    "dotenv": "^16.5.0",
+    "ejs": "^3.1.10",
+    "express": "^5.1.0",
+    "mariadb": "^3.4.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
 }

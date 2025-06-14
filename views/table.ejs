@@ -1,0 +1,99 @@
+<%- include('partials/header', {title: title}) %>
+
+<div class="row mb-3">
+    <div class="col">
+        <h1><%= tableName.replace('_specs', '').replace(/_/g, ' ').charAt(0).toUpperCase() + tableName.replace('_specs', '').replace(/_/g, ' ').slice(1) %> Components</h1>
+        <p class="lead">Browse and search for specifications in the database.</p>
+        <p class="record-count">Total records: <%= recordCount %></p>
+    </div>
+</div>
+
+<!-- Search Form -->
+<div class="row mb-4">
+    <div class="col">
+        <div class="card search-form">
+            <div class="card-body">
+                <h5 class="card-title mb-3">Search Components</h5>
+                <form action="/search/<%= tableName %>" method="POST" class="row g-3">
+                    <div class="col-md-4">
+                        <label for="column" class="form-label">Search Field</label>
+                        <select name="column" id="column" class="form-select">
+                            <option value="all" <%= (typeof searchColumn === 'undefined' || searchColumn === 'all') ? 'selected' : '' %>>All Text Fields</option>
+                            <% columns.forEach(function(column) { %>
+                                <% if(column.COLUMN_TYPE.includes('char') || column.COLUMN_TYPE.includes('text')) { %>
+                                    <option value="<%= column.COLUMN_NAME %>" <%= (typeof searchColumn !== 'undefined' && searchColumn === column.COLUMN_NAME) ? 'selected' : '' %>>
+                                        <%= column.COLUMN_NAME.replace(/_/g, ' ').charAt(0).toUpperCase() + column.COLUMN_NAME.replace(/_/g, ' ').slice(1) %>
+                                    </option>
+                                <% } %>
+                            <% }); %>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="term" class="form-label">Search Term</label>
+                        <input type="text" name="term" id="term" class="form-control" value="<%= searchTerm || '' %>">
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">Search</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Data Table -->
+<div class="row">
+    <div class="col">
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover table-bordered">
+                        <thead class="table-dark">
+                            <tr>
+                                <% columns.forEach(function(column) { %>
+                                    <th scope="col"><%= column.COLUMN_NAME.replace(/_/g, ' ').charAt(0).toUpperCase() + column.COLUMN_NAME.replace(/_/g, ' ').slice(1) %></th>
+                                <% }); %>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% if (data.length === 0) { %>
+                                <tr>
+                                    <td colspan="<%= columns.length %>" class="text-center">No records found</td>
+                                </tr>
+                            <% } else { %>
+                                <% data.forEach(function(row) { %>
+                                    <tr class="table-row-link" onclick="window.location='/component/<%= tableName %>/<%= row.id %>';" style="cursor: pointer;">
+                                        <% columns.forEach(function(column) { 
+                                            const value = row[column.COLUMN_NAME]; 
+                                            let displayValue = value;
+                                            
+                                            if (value === null || value === undefined) {
+                                                displayValue = '<span class="text-muted">N/A</span>';
+                                            } else if (column.COLUMN_NAME === 'inventory') {
+                                                let badgeClass = 'bg-success';
+                                                if (value.toLowerCase().includes('low')) {
+                                                    badgeClass = 'bg-warning text-dark';
+                                                } else if (value.toLowerCase().includes('out') || value.toLowerCase().includes('no')) {
+                                                    badgeClass = 'bg-danger';
+                                                }
+                                                displayValue = `<span class="badge ${badgeClass} badge-inventory">${value}</span>`;
+                                            } else if (typeof value === 'boolean' || column.COLUMN_TYPE.includes('tinyint(1)')) {
+                                                displayValue = value ? '<i class="fas fa-check text-success"></i>' : '<i class="fas fa-times text-danger"></i>';
+                                            } else if (column.COLUMN_TYPE.includes('text') && value.length > 100) {
+                                                displayValue = value.substring(0, 100) + '...';
+                                            }
+                                        %>
+                                            <td><%- displayValue %></td>
+                                        <% }); %>
+                                    </tr>
+                                <% }); %>
+                            <% } %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include('partials/footer') %>
