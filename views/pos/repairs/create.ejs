@@ -1,0 +1,374 @@
+<%- include('../../partials/header', {title: title}) %>
+
+<div class="row mb-4">
+    <div class="col">
+        <h1><i class="fas fa-tools text-warning"></i> Create New Repair Service</h1>
+        <p class="lead">Register a device repair request</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="card-title mb-0"><i class="fas fa-plus"></i> Repair Service Information</h5>
+            </div>
+            <div class="card-body">
+                <form id="repairForm" action="/api/pos/repairs/create" method="POST">
+                    <div class="row">
+                        <!-- Customer Information -->
+                        <div class="col-md-6">
+                            <h6 class="text-primary">Customer Information</h6>
+                            <div class="mb-3">
+                                <label for="customerSelect" class="form-label">Existing Customer</label>
+                                <select id="customerSelect" name="customer_id" class="form-select">
+                                    <option value="">Select existing customer</option>
+                                    <% customers.forEach(customer => { %>
+                                        <option value="<%= customer.id %>" data-name="<%= customer.name %>" 
+                                                data-email="<%= customer.email %>" data-phone="<%= customer.phone %>">
+                                            <%= customer.name %>
+                                        </option>
+                                    <% }); %>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="customerName" class="form-label">Customer Name *</label>
+                                <input type="text" id="customerName" name="customer_name" class="form-control" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="customerPhone" class="form-label">Phone *</label>
+                                <input type="tel" id="customerPhone" name="customer_phone" class="form-control" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="customerEmail" class="form-label">Email</label>
+                                <input type="email" id="customerEmail" name="customer_email" class="form-control">
+                            </div>
+                        </div>
+                        
+                        <!-- Device Information -->
+                        <div class="col-md-6">
+                            <h6 class="text-primary">Device Information</h6>
+                            <div class="mb-3">
+                                <label for="deviceBrand" class="form-label">Brand *</label>
+                                <select id="deviceBrand" name="device_brand" class="form-select" required>
+                                    <option value="">Select brand</option>
+                                    <option value="Apple">Apple</option>
+                                    <option value="Samsung">Samsung</option>
+                                    <option value="POCO">POCO</option>
+                                    <option value="Xiaomi">Xiaomi</option>
+                                    <option value="Huawei">Huawei</option>
+                                    <option value="OnePlus">OnePlus</option>
+                                    <option value="Google">Google</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="deviceModel" class="form-label">Model *</label>
+                                <input type="text" id="deviceModel" name="device_model" class="form-control" 
+                                       placeholder="e.g., iPhone 13, Galaxy S22" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="deviceImei" class="form-label">IMEI/Serial Number</label>
+                                <input type="text" id="deviceImei" name="device_imei" class="form-control" 
+                                       placeholder="Device identifier">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Repair Details -->
+                    <div class="row">
+                        <div class="col-12">
+                            <h6 class="text-primary">Repair Details</h6>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="issueDescription" class="form-label">Issue Description *</label>
+                                <textarea id="issueDescription" name="issue_description" class="form-control" rows="3" 
+                                          placeholder="Describe the problem with the device..." required></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="repairType" class="form-label">Repair Type *</label>
+                                <select id="repairType" name="repair_type" class="form-select" required>
+                                    <option value="">Select repair type</option>
+                                    <option value="Screen Replacement">Screen Replacement</option>
+                                    <option value="Battery Replacement">Battery Replacement</option>
+                                    <option value="Water Damage">Water Damage Repair</option>
+                                    <option value="Charging Port">Charging Port Repair</option>
+                                    <option value="Speaker/Microphone">Speaker/Microphone</option>
+                                    <option value="Camera">Camera Repair</option>
+                                    <option value="Software">Software Issues</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="priority" class="form-label">Priority *</label>
+                                <select id="priority" name="priority" class="form-select" required>
+                                    <option value="normal">Normal (5-7 days)</option>
+                                    <option value="urgent">Urgent (2-3 days)</option>
+                                    <option value="emergency">Emergency (Same day)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="estimatedCost" class="form-label">Estimated Cost</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" id="estimatedCost" name="estimated_cost" class="form-control" 
+                                           step="0.01" placeholder="0.00">
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="assignedTechnician" class="form-label">Assign Technician</label>
+                                <select id="assignedTechnician" name="assigned_technician" class="form-select">
+                                    <option value="">Assign later</option>
+                                    <option value="John Smith">John Smith</option>
+                                    <option value="Jane Doe">Jane Doe</option>
+                                    <option value="Mike Johnson">Mike Johnson</option>
+                                    <option value="Sarah Wilson">Sarah Wilson</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Additional Information -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="warrantyStatus" class="form-label">Warranty Status</label>
+                                <select id="warrantyStatus" name="warranty_status" class="form-select">
+                                    <option value="out_of_warranty">Out of Warranty</option>
+                                    <option value="manufacturer_warranty">Manufacturer Warranty</option>
+                                    <option value="extended_warranty">Extended Warranty</option>
+                                    <option value="store_warranty">Store Warranty</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="expectedCompletion" class="form-label">Expected Completion</label>
+                                <input type="date" id="expectedCompletion" name="estimated_completion" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Additional Notes</label>
+                        <textarea id="notes" name="notes" class="form-control" rows="2" 
+                                  placeholder="Any additional information, accessories included, etc."></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="backupData" name="backup_data">
+                            <label class="form-check-label" for="backupData">
+                                Customer requested data backup
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="customerNotified" name="customer_notified">
+                            <label class="form-check-label" for="customerNotified">
+                                Customer has been notified of repair terms
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="button" class="btn btn-secondary" onclick="window.history.back()">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-plus"></i> Create Repair Service
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Repair Pricing Guide -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h6 class="card-title mb-0"><i class="fas fa-info-circle"></i> Repair Pricing Guide</h6>
+            </div>
+            <div class="card-body">
+                <h6>Common Repairs:</h6>
+                <small>
+                    <strong>Screen Replacement:</strong><br>
+                    iPhone 13: $150-200<br>
+                    Samsung S22: $120-150<br>
+                    POCO phones: $50-80<br><br>
+                    
+                    <strong>Battery Replacement:</strong><br>
+                    iPhone: $60-80<br>
+                    Android: $40-60<br><br>
+                    
+                    <strong>Charging Port:</strong><br>
+                    Most devices: $30-50<br><br>
+                    
+                    <strong>Water Damage:</strong><br>
+                    Assessment: $20-30<br>
+                    Repair: $80-150
+                </small>
+                
+                <hr>
+                
+                <h6>Priority Pricing:</h6>
+                <small>
+                    <strong>Normal:</strong> Standard price<br>
+                    <strong>Urgent:</strong> +50% surcharge<br>
+                    <strong>Emergency:</strong> +100% surcharge
+                </small>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header bg-info text-white">
+                <h6 class="card-title mb-0"><i class="fas fa-clock"></i> Estimated Times</h6>
+            </div>
+            <div class="card-body">
+                <small>
+                    <strong>Screen:</strong> 2-4 hours<br>
+                    <strong>Battery:</strong> 1-2 hours<br>
+                    <strong>Charging Port:</strong> 2-3 hours<br>
+                    <strong>Water Damage:</strong> 1-3 days<br>
+                    <strong>Software:</strong> 1-2 hours<br>
+                    <strong>Camera:</strong> 2-4 hours
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set minimum date to today
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('expectedCompletion').min = today;
+    
+    // Auto-calculate expected completion based on priority
+    document.getElementById('priority').addEventListener('change', function() {
+        const priority = this.value;
+        const completionDate = document.getElementById('expectedCompletion');
+        const today = new Date();
+        
+        let daysToAdd = 7; // default normal
+        if (priority === 'urgent') daysToAdd = 3;
+        if (priority === 'emergency') daysToAdd = 1;
+        
+        const expectedDate = new Date(today);
+        expectedDate.setDate(today.getDate() + daysToAdd);
+        completionDate.value = expectedDate.toISOString().split('T')[0];
+    });
+    
+    // Customer selection handler
+    document.getElementById('customerSelect').addEventListener('change', function() {
+        const option = this.options[this.selectedIndex];
+        if (option.value) {
+            document.getElementById('customerName').value = option.dataset.name || '';
+            document.getElementById('customerPhone').value = option.dataset.phone || '';
+            document.getElementById('customerEmail').value = option.dataset.email || '';
+        }
+    });
+    
+    // Repair type cost estimation
+    document.getElementById('repairType').addEventListener('change', function() {
+        const repairType = this.value;
+        const estimatedCostField = document.getElementById('estimatedCost');
+        
+        let estimatedCost = 0;
+        switch(repairType) {
+            case 'Screen Replacement':
+                estimatedCost = 120;
+                break;
+            case 'Battery Replacement':
+                estimatedCost = 60;
+                break;
+            case 'Water Damage':
+                estimatedCost = 100;
+                break;
+            case 'Charging Port':
+                estimatedCost = 40;
+                break;
+            case 'Speaker/Microphone':
+                estimatedCost = 50;
+                break;
+            case 'Camera':
+                estimatedCost = 80;
+                break;
+            case 'Software':
+                estimatedCost = 30;
+                break;
+            default:
+                estimatedCost = 0;
+        }
+        
+        if (estimatedCost > 0) {
+            estimatedCostField.value = estimatedCost;
+        }
+    });
+    
+    // Form validation and submission
+    document.getElementById('repairForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Basic validation
+        const requiredFields = ['customer_name', 'customer_phone', 'device_brand', 'device_model', 'issue_description', 'repair_type', 'priority'];
+        let isValid = true;
+        
+        requiredFields.forEach(field => {
+            const input = document.getElementById(field.replace('_', ''));
+            if (!input || !input.value.trim()) {
+                if (input) input.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                if (input) input.classList.remove('is-invalid');
+            }
+        });
+        
+        if (!isValid) {
+            alert('Please fill in all required fields');
+            return;
+        }
+        
+        // Submit the form
+        const formData = new FormData(this);
+        const data = Object.fromEntries(formData.entries());
+        
+        fetch('/api/pos/repairs/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                alert('Repair service created successfully!');
+                window.location.href = '/pos/repairs';
+            } else {
+                alert('Error creating repair service: ' + result.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while creating the repair service');
+        });
+    });
+});
+</script>
+
+<%- include('../../partials/footer') %>

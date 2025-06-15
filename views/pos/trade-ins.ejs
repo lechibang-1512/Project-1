@@ -1,0 +1,259 @@
+<%- include('../partials/header', {title: title}) %>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-exchange-alt text-warning"></i> Trade-in Management</h1>
+    <div>
+        <a href="/pos/trade-ins/create" class="btn btn-success">
+            <i class="fas fa-plus"></i> New Trade-in
+        </a>
+        <a href="/pos/used-inventory" class="btn btn-info">
+            <i class="fas fa-warehouse"></i> Used Inventory
+        </a>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4><%= stats.total || 0 %></h4>
+                        <span>Total Trade-ins</span>
+                    </div>
+                    <i class="fas fa-exchange-alt fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4><%= stats.pending || 0 %></h4>
+                        <span>Pending Evaluation</span>
+                    </div>
+                    <i class="fas fa-clock fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4><%= stats.completed || 0 %></h4>
+                        <span>Completed</span>
+                    </div>
+                    <i class="fas fa-check-circle fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>$<%= (stats.total_value || 0).toLocaleString() %></h4>
+                        <span>Total Value</span>
+                    </div>
+                    <i class="fas fa-dollar-sign fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Filters</h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-3">
+                <label for="status" class="form-label">Status</label>
+                <select name="status" id="status" class="form-select">
+                    <option value="all" <%= currentFilters.status === 'all' ? 'selected' : '' %>>All Statuses</option>
+                    <option value="pending_evaluation" <%= currentFilters.status === 'pending_evaluation' ? 'selected' : '' %>>Pending Evaluation</option>
+                    <option value="evaluated" <%= currentFilters.status === 'evaluated' ? 'selected' : '' %>>Evaluated</option>
+                    <option value="accepted" <%= currentFilters.status === 'accepted' ? 'selected' : '' %>>Accepted</option>
+                    <option value="rejected" <%= currentFilters.status === 'rejected' ? 'selected' : '' %>>Rejected</option>
+                    <option value="completed" <%= currentFilters.status === 'completed' ? 'selected' : '' %>>Completed</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="condition" class="form-label">Condition</label>
+                <select name="condition" id="condition" class="form-select">
+                    <option value="all">All Conditions</option>
+                    <option value="excellent" <%= currentFilters.condition === 'excellent' ? 'selected' : '' %>>Excellent</option>
+                    <option value="good" <%= currentFilters.condition === 'good' ? 'selected' : '' %>>Good</option>
+                    <option value="fair" <%= currentFilters.condition === 'fair' ? 'selected' : '' %>>Fair</option>
+                    <option value="poor" <%= currentFilters.condition === 'poor' ? 'selected' : '' %>>Poor</option>
+                    <option value="broken" <%= currentFilters.condition === 'broken' ? 'selected' : '' %>>Broken</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="brand" class="form-label">Brand</label>
+                <select name="brand" id="brand" class="form-select">
+                    <option value="all">All Brands</option>
+                    <option value="Apple" <%= currentFilters.brand === 'Apple' ? 'selected' : '' %>>Apple</option>
+                    <option value="Samsung" <%= currentFilters.brand === 'Samsung' ? 'selected' : '' %>>Samsung</option>
+                    <option value="Google" <%= currentFilters.brand === 'Google' ? 'selected' : '' %>>Google</option>
+                    <option value="OnePlus" <%= currentFilters.brand === 'OnePlus' ? 'selected' : '' %>>OnePlus</option>
+                    <option value="Xiaomi" <%= currentFilters.brand === 'Xiaomi' ? 'selected' : '' %>>Xiaomi</option>
+                    <option value="POCO" <%= currentFilters.brand === 'POCO' ? 'selected' : '' %>>POCO</option>
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary me-2">
+                    <i class="fas fa-filter"></i> Apply Filters
+                </button>
+                <a href="/pos/trade-ins" class="btn btn-outline-secondary">
+                    <i class="fas fa-times"></i> Clear
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Trade-ins Table -->
+<div class="card">
+    <div class="card-header bg-warning text-dark">
+        <h5 class="card-title mb-0">Trade-in Records (<%= tradeIns.length %>)</h5>
+    </div>
+    <div class="card-body p-0">
+        <% if (tradeIns.length > 0) { %>
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Trade-in #</th>
+                            <th>Customer</th>
+                            <th>Device</th>
+                            <th>Condition</th>
+                            <th>Estimated Value</th>
+                            <th>Final Value</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% tradeIns.forEach(function(tradeIn) { %>
+                            <tr>
+                                <td>
+                                    <strong><%= tradeIn.trade_in_number %></strong>
+                                </td>
+                                <td>
+                                    <%= tradeIn.customer_name %><br>
+                                    <small class="text-muted"><%= tradeIn.customer_phone %></small>
+                                </td>
+                                <td>
+                                    <strong><%= tradeIn.device_brand %> <%= tradeIn.device_model %></strong><br>
+                                    <small class="text-muted">
+                                        <% if (tradeIn.device_color) { %><%= tradeIn.device_color %><% } %>
+                                        <% if (tradeIn.device_storage) { %> | <%= tradeIn.device_storage %><% } %>
+                                    </small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-<%= 
+                                        tradeIn.device_condition === 'excellent' ? 'success' : 
+                                        tradeIn.device_condition === 'good' ? 'primary' : 
+                                        tradeIn.device_condition === 'fair' ? 'warning text-dark' : 
+                                        tradeIn.device_condition === 'poor' ? 'danger' : 'secondary' %>">
+                                        <%= tradeIn.device_condition.charAt(0).toUpperCase() + tradeIn.device_condition.slice(1) %>
+                                    </span><br>
+                                    <small class="text-muted"><%= tradeIn.functional_status.replace('_', ' ') %></small>
+                                </td>
+                                <td>
+                                    <strong>$<%= parseFloat(tradeIn.estimated_value || 0).toFixed(2) %></strong>
+                                </td>
+                                <td>
+                                    <% if (tradeIn.final_value) { %>
+                                        <strong class="text-success">$<%= parseFloat(tradeIn.final_value).toFixed(2) %></strong>
+                                    <% } else { %>
+                                        <span class="text-muted">Pending</span>
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <span class="badge bg-<%= 
+                                        tradeIn.status === 'completed' ? 'success' : 
+                                        tradeIn.status === 'accepted' ? 'info' : 
+                                        tradeIn.status === 'rejected' ? 'danger' : 
+                                        tradeIn.status === 'evaluated' ? 'primary' : 'warning text-dark' %>">
+                                        <%= tradeIn.status.replace('_', ' ').toUpperCase() %>
+                                    </span>
+                                </td>
+                                <td>
+                                    <%= new Date(tradeIn.created_at).toLocaleDateString() %>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="/pos/trade-ins/<%= tradeIn.id %>" class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <% if (tradeIn.status === 'pending_evaluation' || tradeIn.status === 'evaluated') { %>
+                                            <button type="button" class="btn btn-outline-success btn-sm" 
+                                                    onclick="updateTradeInStatus(<%= tradeIn.id %>, 'accepted')">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger btn-sm" 
+                                                    onclick="updateTradeInStatus(<%= tradeIn.id %>, 'rejected')">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        <% } %>
+                                    </div>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            </div>
+        <% } else { %>
+            <div class="text-center py-5">
+                <i class="fas fa-exchange-alt fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">No Trade-ins Found</h4>
+                <p class="text-muted">Get started by processing your first trade-in.</p>
+                <a href="/pos/trade-ins/create" class="btn btn-success">
+                    <i class="fas fa-plus"></i> Process Trade-in
+                </a>
+            </div>
+        <% } %>
+    </div>
+</div>
+
+<script>
+async function updateTradeInStatus(tradeInId, status) {
+    if (!confirm(`Are you sure you want to ${status} this trade-in?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/pos/trade-ins/${tradeInId}/status`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status: status })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            location.reload();
+        } else {
+            alert('Error updating trade-in: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Error updating trade-in:', error);
+        alert('Error updating trade-in. Please try again.');
+    }
+}
+</script>
+
+<%- include('../partials/footer') %>

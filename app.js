@@ -1075,7 +1075,19 @@ async function getComponentById(tableName, id) {
         SELECT * FROM ${conn.escapeId(tableName)} WHERE id = ?
     `, [id]);
     conn.release();
-    return components.length > 0 ? components[0] : null;
+    if (components.length > 0) {
+        const component = components[0];
+        // Add a consistent 'name' field for different table types
+        if (tableName === 'phone_specs') {
+            component.name = `${component.sm_name} ${component.color} ${component.ram}/${component.rom}`;
+        } else if (component.model) {
+            component.name = component.model;
+        } else if (component.brand) {
+            component.name = component.brand;
+        }
+        return component;
+    }
+    return null;
 }
 
 // Helper function to update inventory stock
@@ -1816,15 +1828,32 @@ app.get('/api/components/:tableName', async (req, res) => {
         const tableName = req.params.tableName;
         const conn = await pool.getConnection();
         
-        const components = await conn.query(`
-            SELECT id, 
-                COALESCE(model, name, brand) as name,
-                COALESCE(price, 0) as price,
-                COALESCE(stock_quantity, 0) as stock
-            FROM ${conn.escapeId(tableName)}
-            ORDER BY name
-            LIMIT 50
-        `);
+        let query = '';
+        if (tableName === 'phone_specs') {
+            // Special handling for phone_specs table
+            query = `
+                SELECT id, 
+                    CONCAT(sm_name, ' ', color, ' ', ram, '/', rom) as name,
+                    COALESCE(sm_price, 0) as price,
+                    COALESCE(sm_inventory, 0) as stock
+                FROM ${conn.escapeId(tableName)}
+                ORDER BY sm_name, ram, rom
+                LIMIT 50
+            `;
+        } else {
+            // Default handling for other component tables
+            query = `
+                SELECT id, 
+                    COALESCE(model, name, brand) as name,
+                    COALESCE(price, 0) as price,
+                    COALESCE(stock_quantity, 0) as stock
+                FROM ${conn.escapeId(tableName)}
+                ORDER BY name
+                LIMIT 50
+            `;
+        }
+        
+        const components = await conn.query(query);
         
         conn.release();
         
@@ -1836,6 +1865,697 @@ app.get('/api/components/:tableName', async (req, res) => {
 });
 
 // ===== END ORDER MANAGEMENT ROUTES =====
+
+// ===== POS & OPERATIONS SYSTEM ROUTES =====
+
+// POS Main Interface
+app.get('/pos', async (req, res) => {
+    let conn;
+    try {
+        conn = await pool.getConnection();
+        
+        // Get sample customers for the dropdown
+        const customers = await ordersPool.getConnection().then(async (ordersConn) => {
+            const customersList = await ordersConn.query(`
+                SELECT id, name, email, phone 
+                FROM customers 
+                WHERE is_active = 1 
+                ORDER BY name 
+                LIMIT 50
+            `);
+            ordersConn.release();
+            return customersList;
+        });
+        
+        res.render('pos/index', {
+            title: 'Point of Sale',
+            customers: customers,
+            cashier: 'Staff'
+        });
+    } catch (err) {
+        console.error('Error loading POS interface:', err);
+        res.status(500).render('error', {
+            title: 'Error',
+            error: err.message
+        });
+    } finally {
+        if (conn) conn.release();
+    }
+});
+
+// POS Trade-ins Management
+app.get('/pos/trade-ins', async (req, res) => {
+    let conn;
+    try {
+        conn = await ordersPool.getConnection();
+        
+        // Get trade-in records with pagination
+        const { status, condition, brand } = req.query;
+        
+        let query = `
+            SELECT t.*, c.name as customer_name, c.phone as customer_phone 
+            FROM trade_ins t
+            LEFT JOIN orders_db.customers c ON t.customer_id = c.id
+            WHERE 1=1
+        `;
+        let params = [];
+        
+        if (status && status !== 'all') {
+            query += ' AND t.status = ?';
+            params.push(status);
+        }
+        
+        if (condition && condition !== 'all') {
+            query += ' AND t.device_condition = ?';
+            params.push(condition);
+        }
+        
+        if (brand && brand !== 'all') {
+            query += ' AND t.device_brand = ?';
+            params.push(brand);
+        }
+        
+        query += ' ORDER BY t.created_at DESC LIMIT 50';
+        
+        const tradeIns = await conn.query(query, params);
+        
+        // Get statistics
+        const stats = await conn.query(`
+            SELECT 
+                COUNT(*) as total_trade_ins,
+                COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_evaluations,
+                COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_transactions,
+                COALESCE(SUM(CASE WHEN status = 'completed' THEN offered_amount ELSE 0 END), 0) as total_trade_value
+            FROM trade_ins
+        `);
+        
+        conn.release();
+        
+        res.render('pos/trade-ins', {
+            title: 'Trade-in Management',
+            tradeIns: tradeIns,
+            stats: stats[0],
+            currentFilters: { status, condition, brand }
+        });
+    } catch (err) {
+        console.error('Error loading trade-ins:', err);
+        res.status(500).render('error', {
+            title: 'Error',
+            error: err.message
+        });
+    }
+});
+
+// POS Repair Services
+app.get('/pos/repairs', async (req, res) => {
+    let conn;
+    try {
+        conn = await ordersPool.getConnection();
+        
+        // Get repair services with filtering
+        const { status, priority, technician } = req.query;
+        
+        let query = `
+            SELECT r.*, c.name as customer_name, c.phone as customer_phone,
+                   GROUP_CONCAT(DISTINCT p.part_name) as parts_used
+            FROM repair_services r
+            LEFT JOIN orders_db.customers c ON r.customer_id = c.id
+            LEFT JOIN repair_parts p ON r.id = p.repair_id
+            WHERE 1=1
+        `;
+        let params = [];
+        
+        if (status && status !== 'all') {
+            query += ' AND r.status = ?';
+            params.push(status);
+        }
+        
+        if (priority && priority !== 'all') {
+            query += ' AND r.priority = ?';
+            params.push(priority);
+        }
+        
+        if (technician && technician !== 'all') {
+            query += ' AND r.assigned_technician = ?';
+            params.push(technician);
+        }
+        
+        query += ' GROUP BY r.id ORDER BY r.created_at DESC LIMIT 50';
+        
+        const repairs = await conn.query(query, params);
+        
+        // Get statistics
+        const stats = await conn.query(`
+            SELECT 
+                COUNT(*) as total_repairs,
+                COUNT(CASE WHEN status = 'in_progress' THEN 1 END) as in_progress,
+                COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed,
+                COALESCE(SUM(CASE WHEN status = 'completed' THEN total_cost ELSE 0 END), 0) as total_revenue
+            FROM repair_services
+        `);
+        
+        conn.release();
+        
+        res.render('pos/repairs', {
+            title: 'Repair Services',
+            repairs: repairs,
+            stats: stats[0],
+            currentFilters: { status, priority, technician }
+        });
+    } catch (err) {
+        console.error('Error loading repairs:', err);
+        res.status(500).render('error', {
+            title: 'Error',
+            error: err.message
+        });
+    }
+});
+
+// ===== POS API ENDPOINTS =====
+
+// Used Inventory Management
+app.get('/pos/used-inventory', async (req, res) => {
+    let conn;
+    try {
+        conn = await ordersPool.getConnection();
+        
+        // Get used inventory with filtering
+        const { brand, condition, stock, search } = req.query;
+        
+        let query = `
+            SELECT * FROM used_inventory WHERE 1=1
+        `;
+        let params = [];
+        
+        if (brand && brand !== 'all') {
+            query += ' AND device_brand = ?';
+            params.push(brand);
+        }
+        
+        if (condition && condition !== 'all') {
+            query += ' AND device_condition = ?';
+            params.push(condition);
+        }
+        
+        if (stock === 'in_stock') {
+            query += ' AND stock_quantity > 0';
+        } else if (stock === 'sold') {
+            query += ' AND stock_quantity = 0';
+        }
+        
+        if (search) {
+            query += ' AND (device_brand LIKE ? OR device_model LIKE ?)';
+            params.push(`%${search}%`, `%${search}%`);
+        }
+        
+        query += ' ORDER BY created_at DESC';
+        
+        const inventory = await conn.query(query, params);
+        
+        // Get statistics
+        const stats = await conn.query(`
+            SELECT 
+                COUNT(*) as total_devices,
+                COUNT(CASE WHEN stock_quantity > 0 THEN 1 END) as in_stock,
+                COUNT(CASE WHEN stock_quantity = 0 THEN 1 END) as sold,
+                COALESCE(SUM(CASE WHEN stock_quantity > 0 THEN selling_price * stock_quantity ELSE 0 END), 0) as total_value
+            FROM used_inventory
+        `);
+        
+        conn.release();
+        
+        res.render('pos/used-inventory', {
+            title: 'Used Inventory Management',
+            inventory: inventory,
+            stats: stats[0],
+            currentFilters: { brand, condition, stock, search }
+        });
+    } catch (err) {
+        console.error('Error loading used inventory:', err);
+        res.status(500).render('error', {
+            title: 'Error',
+            error: err.message
+        });
+    }
+});
+
+// Create Trade-in Form
+app.get('/pos/trade-ins/create', async (req, res) => {
+    let conn;
+    try {
+        // Get customers for dropdown
+        conn = await ordersPool.getConnection();
+        const customers = await conn.query(`
+            SELECT id, name, email, phone 
+            FROM customers 
+            WHERE is_active = 1 
+            ORDER BY name 
+            LIMIT 100
+        `);
+        conn.release();
+        
+        res.render('pos/trade-ins/create', {
+            title: 'Create Trade-in',
+            customers: customers
+        });
+    } catch (err) {
+        console.error('Error loading trade-in form:', err);
+        res.status(500).render('error', {
+            title: 'Error',
+            error: err.message
+        });
+    }
+});
+
+// Create Repair Form
+app.get('/pos/repairs/create', async (req, res) => {
+    let conn;
+    try {
+        // Get customers for dropdown
+        conn = await ordersPool.getConnection();
+        const customers = await conn.query(`
+            SELECT id, name, email, phone 
+            FROM customers 
+            WHERE is_active = 1 
+            ORDER BY name 
+            LIMIT 100
+        `);
+        conn.release();
+        
+        res.render('pos/repairs/create', {
+            title: 'Create Repair Service',
+            customers: customers
+        });
+    } catch (err) {
+        console.error('Error loading repair form:', err);
+        res.status(500).render('error', {
+            title: 'Error',
+            error: err.message
+        });
+    }
+});
+
+// Create Trade-in API
+app.post('/api/pos/trade-ins/create', async (req, res) => {
+    let conn;
+    try {
+        const {
+            customer_id, customer_name, customer_phone, customer_email,
+            device_brand, device_model, device_condition, device_storage,
+            original_price, offered_amount, notes, has_charger, has_box
+        } = req.body;
+        
+        conn = await ordersPool.getConnection();
+        
+        const result = await conn.query(`
+            INSERT INTO trade_ins (
+                customer_id, customer_name, customer_phone, customer_email,
+                device_brand, device_model, device_condition, device_storage,
+                original_price, offered_amount, notes, has_charger, has_box, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+        `, [customer_id || null, customer_name, customer_phone, customer_email || '',
+            device_brand, device_model, device_condition, device_storage || '',
+            original_price || 0, offered_amount || 0, notes || '',
+            has_charger ? 1 : 0, has_box ? 1 : 0]);
+        
+        conn.release();
+        
+        res.json({
+            success: true,
+            trade_in_id: result.insertId,
+            message: 'Trade-in created successfully'
+        });
+        
+    } catch (err) {
+        console.error('Error creating trade-in:', err);
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    }
+});
+
+// Create Repair API
+app.post('/api/pos/repairs/create', async (req, res) => {
+    let conn;
+    try {
+        const {
+            customer_id, customer_name, customer_phone, customer_email,
+            device_brand, device_model, device_imei, issue_description,
+            repair_type, priority, estimated_cost, assigned_technician,
+            warranty_status, estimated_completion, notes, backup_data, customer_notified
+        } = req.body;
+        
+        conn = await ordersPool.getConnection();
+        await conn.beginTransaction();
+        
+        // Generate repair number
+        const repairNumber = generateOrderNumber('REP');
+        
+        const result = await conn.query(`
+            INSERT INTO repair_services (
+                repair_number, customer_id, customer_name, customer_phone, customer_email,
+                device_brand, device_model, device_imei, issue_description, repair_type,
+                priority, estimated_cost, assigned_technician, warranty_status,
+                estimated_completion, notes, backup_data, customer_notified, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'received')
+        `, [repairNumber, customer_id || null, customer_name, customer_phone, customer_email || '',
+            device_brand, device_model, device_imei || '', issue_description, repair_type,
+            priority, estimated_cost || 0, assigned_technician || '', warranty_status || 'out_of_warranty',
+            estimated_completion || null, notes || '', backup_data ? 1 : 0, customer_notified ? 1 : 0]);
+        
+        const repairId = result.insertId;
+        
+        // Add initial status history
+        await conn.query(`
+            INSERT INTO repair_status_history (repair_id, status, notes, changed_by)
+            VALUES (?, 'received', 'Repair service created', ?)
+        `, [repairId, assigned_technician || 'System']);
+        
+        await conn.commit();
+        conn.release();
+        
+        res.json({
+            success: true,
+            repair_id: repairId,
+            repair_number: repairNumber,
+            message: 'Repair service created successfully'
+        });
+        
+    } catch (err) {
+        if (conn) {
+            try {
+                await conn.rollback();
+            } catch (rollbackErr) {
+                console.error('Error rolling back transaction:', rollbackErr);
+            }
+        }
+        console.error('Error creating repair service:', err);
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    } finally {
+        if (conn) conn.release();
+    }
+});
+
+// Update Used Inventory Device
+app.post('/api/pos/used-inventory/:id/update', async (req, res) => {
+    let conn;
+    try {
+        const deviceId = req.params.id;
+        const { selling_price, stock_quantity, device_condition, notes } = req.body;
+        
+        conn = await ordersPool.getConnection();
+        
+        await conn.query(`
+            UPDATE used_inventory 
+            SET selling_price = ?, stock_quantity = ?, device_condition = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        `, [selling_price, stock_quantity, device_condition, notes || '', deviceId]);
+        
+        conn.release();
+        
+        res.json({
+            success: true,
+            message: 'Device updated successfully'
+        });
+        
+    } catch (err) {
+        console.error('Error updating used inventory device:', err);
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    }
+});
+
+// Mark Used Inventory Device as Sold
+app.post('/api/pos/used-inventory/:id/sell', async (req, res) => {
+    let conn;
+    try {
+        const deviceId = req.params.id;
+        const { quantity, sold_price, notes } = req.body;
+        
+        conn = await ordersPool.getConnection();
+        
+        // Update stock quantity
+        await conn.query(`
+            UPDATE used_inventory 
+            SET stock_quantity = GREATEST(0, stock_quantity - ?), 
+                actual_selling_price = ?, 
+                sale_notes = ?, 
+                sold_at = CURRENT_TIMESTAMP,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        `, [quantity, sold_price, notes || '', deviceId]);
+        
+        conn.release();
+        
+        res.json({
+            success: true,
+            message: 'Device marked as sold successfully'
+        });
+        
+    } catch (err) {
+        console.error('Error marking device as sold:', err);
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    }
+});
+
+// Process POS Transaction
+app.post('/api/pos/process-transaction', async (req, res) => {
+    let conn;
+    try {
+        const { 
+            customer_id, 
+            customer_name, 
+            customer_email, 
+            customer_phone,
+            payment_method, 
+            items, 
+            subtotal, 
+            tax_amount, 
+            discount_amount, 
+            total_amount,
+            notes 
+        } = req.body;
+        
+        conn = await ordersPool.getConnection();
+        await conn.beginTransaction();
+        
+        // Generate transaction number
+        const transactionNumber = generateOrderNumber('POS');
+        
+        // Insert POS transaction
+        const transactionResult = await conn.query(`
+            INSERT INTO pos_transactions (
+                transaction_number, customer_id, customer_name, customer_email, customer_phone,
+                payment_method, subtotal, tax_amount, discount_amount, total_amount, notes
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [transactionNumber, customer_id || null, customer_name || '', customer_email || '', 
+            customer_phone || '', payment_method, subtotal, tax_amount || 0, discount_amount || 0, 
+            total_amount, notes || '']);
+        
+        const transactionId = transactionResult.insertId;
+        
+        // Insert transaction items and update inventory
+        for (const item of items) {
+            // Insert transaction item
+            await conn.query(`
+                INSERT INTO pos_transaction_items (
+                    pos_transaction_id, item_table, item_id, item_name, 
+                    quantity, unit_price, total_price
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            `, [transactionId, item.category, item.id, item.name, 
+                item.quantity, item.price, item.quantity * item.price]);
+            
+            // Update inventory - decrease stock
+            if (item.category === 'phone_specs') {
+                await conn.query(`
+                    UPDATE phone_specs 
+                    SET sm_inventory = GREATEST(0, COALESCE(sm_inventory, 0) - ?) 
+                    WHERE id = ?
+                `, [item.quantity, item.id]);
+            } else if (item.category === 'used_inventory') {
+                await conn.query(`
+                    UPDATE used_inventory 
+                    SET stock_quantity = GREATEST(0, COALESCE(stock_quantity, 0) - ?) 
+                    WHERE id = ?
+                `, [item.quantity, item.id]);
+            }
+        }
+        
+        await conn.commit();
+        
+        res.json({
+            success: true,
+            transaction_id: transactionId,
+            transaction_number: transactionNumber,
+            message: 'Transaction processed successfully'
+        });
+        
+    } catch (err) {
+        if (conn) {
+            try {
+                await conn.rollback();
+            } catch (rollbackErr) {
+                console.error('Error rolling back transaction:', rollbackErr);
+            }
+        }
+        console.error('Error processing POS transaction:', err);
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    } finally {
+        if (conn) conn.release();
+    }
+});
+
+// Get Used Inventory for POS
+app.get('/api/pos/used-inventory', async (req, res) => {
+    let conn;
+    try {
+        conn = await ordersPool.getConnection();
+        
+        const usedPhones = await conn.query(`
+            SELECT id, 
+                   CONCAT(device_brand, ' ', device_model, ' (', device_condition, ')') as name,
+                   selling_price as price,
+                   stock_quantity as stock
+            FROM used_inventory 
+            WHERE stock_quantity > 0 
+            ORDER BY device_brand, device_model
+            LIMIT 100
+        `);
+        
+        conn.release();
+        res.json(usedPhones);
+        
+    } catch (err) {
+        console.error('Error fetching used inventory:', err);
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    }
+});
+
+// Update Trade-in Status
+app.post('/api/pos/trade-ins/:id/status', async (req, res) => {
+    let conn;
+    try {
+        const tradeInId = req.params.id;
+        const { status, offered_amount, notes } = req.body;
+        
+        conn = await ordersPool.getConnection();
+        await conn.beginTransaction();
+        
+        // Update trade-in status
+        await conn.query(`
+            UPDATE trade_ins 
+            SET status = ?, offered_amount = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        `, [status, offered_amount || 0, notes || '', tradeInId]);
+        
+        // If accepted, create used inventory entry
+        if (status === 'accepted') {
+            const tradeIn = await conn.query(`
+                SELECT * FROM trade_ins WHERE id = ?
+            `, [tradeInId]);
+            
+            if (tradeIn.length > 0) {
+                const trade = tradeIn[0];
+                await conn.query(`
+                    INSERT INTO used_inventory (
+                        device_brand, device_model, device_condition, 
+                        purchase_price, selling_price, stock_quantity, source
+                    ) VALUES (?, ?, ?, ?, ?, 1, 'trade_in')
+                `, [trade.device_brand, trade.device_model, trade.device_condition,
+                    trade.offered_amount, trade.offered_amount * 1.3, // 30% markup
+                ]);
+            }
+        }
+        
+        await conn.commit();
+        
+        res.json({
+            success: true,
+            message: 'Trade-in status updated successfully'
+        });
+        
+    } catch (err) {
+        if (conn) {
+            try {
+                await conn.rollback();
+            } catch (rollbackErr) {
+                console.error('Error rolling back transaction:', rollbackErr);
+            }
+        }
+        console.error('Error updating trade-in status:', err);
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    } finally {
+        if (conn) conn.release();
+    }
+});
+
+// Update Repair Status
+app.post('/api/pos/repairs/:id/status', async (req, res) => {
+    let conn;
+    try {
+        const repairId = req.params.id;
+        const { status, assigned_technician, estimated_completion, notes } = req.body;
+        
+        conn = await ordersPool.getConnection();
+        await conn.beginTransaction();
+        
+        // Update repair service
+        await conn.query(`
+            UPDATE repair_services 
+            SET status = ?, assigned_technician = ?, estimated_completion = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        `, [status, assigned_technician || '', estimated_completion || null, notes || '', repairId]);
+        
+        // Add status history entry
+        await conn.query(`
+            INSERT INTO repair_status_history (repair_id, status, notes, changed_by)
+            VALUES (?, ?, ?, ?)
+        `, [repairId, status, notes || '', assigned_technician || 'System']);
+        
+        await conn.commit();
+        
+        res.json({
+            success: true,
+            message: 'Repair status updated successfully'
+        });
+        
+    } catch (err) {
+        if (conn) {
+            try {
+                await conn.rollback();
+            } catch (rollbackErr) {
+                console.error('Error rolling back transaction:', rollbackErr);
+            }
+        }
+        console.error('Error updating repair status:', err);
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    } finally {
+        if (conn) conn.release();
+    }
+});
+
+// ===== END POS SYSTEM ROUTES =====
 
 // Start the server
 const PORT = process.env.PORT || 3000;

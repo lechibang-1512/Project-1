@@ -1,0 +1,621 @@
+<%- include('../partials/header', {title: title}) %>
+
+<div class="row mb-4">
+    <div class="col">
+        <h1><i class="fas fa-cash-register text-success"></i> Point of Sale</h1>
+        <p class="lead">Process customer sales and transactions</p>
+    </div>
+</div>
+
+<!-- POS Interface -->
+<div class="row">
+    <!-- Product Search and Selection -->
+    <div class="col-md-8">
+        <!-- Search Bar -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0"><i class="fas fa-search"></i> Product Search</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label for="productSearch" class="form-label">Search Products</label>
+                        <input type="text" id="productSearch" class="form-control form-control-lg" 
+                               placeholder="Search by name, model, or scan barcode..." autofocus>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="productCategory" class="form-label">Category</label>
+                        <select id="productCategory" class="form-select">
+                            <option value="all">All Products</option>
+                            <option value="phone_specs">New Phones</option>
+                            <option value="used_inventory">Used Phones</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">&nbsp;</label>
+                        <button type="button" class="btn btn-primary btn-lg w-100" onclick="searchProducts()">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Results -->
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="card-title mb-0"><i class="fas fa-mobile-alt"></i> Available Products</h5>
+            </div>
+            <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                <div id="productResults" class="row">
+                    <!-- Quick access buttons for popular items -->
+                    <div class="col-12 mb-3">
+                        <h6>Quick Add - Popular Items</h6>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button class="btn btn-outline-primary btn-sm" onclick="quickAdd('phone_specs', 1, 'POCO C-series Black 3GB/64GB', 150.00)">
+                                POCO Black 3/64 - $150
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm" onclick="quickAdd('phone_specs', 2, 'POCO C-series Black 4GB/128GB', 180.00)">
+                                POCO Black 4/128 - $180
+                            </button>
+                            <button class="btn btn-outline-info btn-sm" onclick="quickAdd('phone_specs', 4, 'POCO C-series Blue 4GB/128GB', 180.00)">
+                                POCO Blue 4/128 - $180
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div id="searchResults">
+                            <p class="text-muted text-center">Search for products to add to the cart</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shopping Cart and Checkout -->
+    <div class="col-md-4">
+        <!-- Customer Info -->
+        <div class="card mb-3">
+            <div class="card-header bg-info text-white">
+                <h6 class="card-title mb-0"><i class="fas fa-user"></i> Customer</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <input type="text" id="customerSearch" class="form-control form-control-sm" 
+                           placeholder="Search customer by name/phone/email...">
+                </div>
+                <div class="mb-2">
+                    <select id="customerSelect" class="form-select form-select-sm">
+                        <option value="">Walk-in Customer</option>
+                        <% customers.forEach(customer => { %>
+                            <option value="<%= customer.id %>" data-name="<%= customer.name %>" 
+                                    data-email="<%= customer.email %>" data-phone="<%= customer.phone %>">
+                                <%= customer.name %> - <%= customer.phone %>
+                            </option>
+                        <% }) %>
+                    </select>
+                </div>
+                <div id="customerInfo" class="small text-muted">
+                    Walk-in customer transaction
+                </div>
+            </div>
+        </div>
+
+        <!-- Shopping Cart -->
+        <div class="card mb-3">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <h6 class="card-title mb-0"><i class="fas fa-shopping-cart"></i> Cart</h6>
+                <button type="button" class="btn btn-light btn-sm" onclick="clearCart()">
+                    <i class="fas fa-trash"></i> Clear
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <div id="cartItems" style="max-height: 300px; overflow-y: auto;">
+                    <div class="p-3 text-center text-muted">
+                        <i class="fas fa-shopping-cart fa-2x mb-2"></i>
+                        <p class="mb-0">Cart is empty</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Order Summary -->
+        <div class="card mb-3">
+            <div class="card-header bg-warning text-dark">
+                <h6 class="card-title mb-0"><i class="fas fa-calculator"></i> Order Summary</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Subtotal:</span>
+                    <span id="subtotal">$0.00</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Discount:</span>
+                    <div class="input-group input-group-sm" style="width: 100px;">
+                        <input type="number" id="discountPercent" class="form-control form-control-sm" 
+                               value="0" min="0" max="100" step="0.1" onchange="updateTotals()">
+                        <span class="input-group-text">%</span>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Discount Amount:</span>
+                    <span id="discountAmount">-$0.00</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Tax (8%):</span>
+                    <span id="taxAmount">$0.00</span>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between fw-bold">
+                    <span>Total:</span>
+                    <span id="totalAmount" class="fs-5">$0.00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment -->
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h6 class="card-title mb-0"><i class="fas fa-credit-card"></i> Payment</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Payment Method</label>
+                    <div class="btn-group w-100" role="group">
+                        <input type="radio" class="btn-check" name="paymentMethod" id="paymentCash" value="cash" checked>
+                        <label class="btn btn-outline-success" for="paymentCash">
+                            <i class="fas fa-money-bill"></i><br>Cash
+                        </label>
+                        <input type="radio" class="btn-check" name="paymentMethod" id="paymentCard" value="card">
+                        <label class="btn btn-outline-primary" for="paymentCard">
+                            <i class="fas fa-credit-card"></i><br>Card
+                        </label>
+                        <input type="radio" class="btn-check" name="paymentMethod" id="paymentMobile" value="mobile">
+                        <label class="btn btn-outline-info" for="paymentMobile">
+                            <i class="fas fa-mobile-alt"></i><br>Mobile
+                        </label>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="cashierName" class="form-label">Cashier</label>
+                    <input type="text" id="cashierName" class="form-control" value="<%= cashier || 'Staff' %>">
+                </div>
+                <button type="button" class="btn btn-success btn-lg w-100" onclick="processPayment()" id="processBtn" disabled>
+                    <i class="fas fa-check"></i> Process Payment
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="fas fa-check-circle"></i> Transaction Completed</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="receiptContent">
+                <!-- Receipt will be populated here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="printReceipt()">
+                    <i class="fas fa-print"></i> Print Receipt
+                </button>
+                <button type="button" class="btn btn-success" onclick="newTransaction()">
+                    <i class="fas fa-plus"></i> New Transaction
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let cart = [];
+let products = {};
+
+// Load initial data
+document.addEventListener('DOMContentLoaded', function() {
+    loadProducts();
+    setupEventListeners();
+    updateTotals();
+});
+
+function setupEventListeners() {
+    // Product search on Enter key
+    document.getElementById('productSearch').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            searchProducts();
+        }
+    });
+
+    // Customer selection
+    document.getElementById('customerSelect').addEventListener('change', function() {
+        updateCustomerInfo();
+    });
+
+    // Auto-search customers
+    document.getElementById('customerSearch').addEventListener('input', function() {
+        filterCustomers();
+    });
+}
+
+async function loadProducts() {
+    try {
+        // Load new phones
+        const phoneResponse = await fetch('/api/components/phone_specs');
+        const phones = await phoneResponse.json();
+        products.phone_specs = phones;
+
+        // Load used inventory
+        const usedResponse = await fetch('/api/pos/used-inventory');
+        const usedPhones = await usedResponse.json();
+        products.used_inventory = usedPhones;
+
+        console.log('Products loaded:', products);
+    } catch (error) {
+        console.error('Error loading products:', error);
+    }
+}
+
+function searchProducts() {
+    const searchTerm = document.getElementById('productSearch').value.toLowerCase();
+    const category = document.getElementById('productCategory').value;
+    const resultsDiv = document.getElementById('searchResults');
+
+    let results = [];
+
+    if (category === 'all' || category === 'phone_specs') {
+        if (products.phone_specs) {
+            const phoneResults = products.phone_specs.filter(phone => 
+                phone.name.toLowerCase().includes(searchTerm)
+            ).map(phone => ({...phone, category: 'phone_specs', type: 'new'}));
+            results = results.concat(phoneResults);
+        }
+    }
+
+    if (category === 'all' || category === 'used_inventory') {
+        if (products.used_inventory) {
+            const usedResults = products.used_inventory.filter(phone => 
+                phone.name.toLowerCase().includes(searchTerm)
+            ).map(phone => ({...phone, category: 'used_inventory', type: 'used'}));
+            results = results.concat(usedResults);
+        }
+    }
+
+    if (results.length === 0) {
+        resultsDiv.innerHTML = '<p class="text-muted text-center">No products found</p>';
+        return;
+    }
+
+    resultsDiv.innerHTML = results.map(product => `
+        <div class="col-md-6 mb-2">
+            <div class="card border-light">
+                <div class="card-body p-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title mb-1">${product.name}</h6>
+                            <small class="text-muted">${product.type.toUpperCase()} - Stock: ${product.stock}</small>
+                            <div class="fw-bold text-success">$${parseFloat(product.price).toFixed(2)}</div>
+                        </div>
+                        <button class="btn btn-success btn-sm" 
+                                onclick="addToCart('${product.category}', ${product.id}, '${product.name}', ${product.price}, '${product.type}')"
+                                ${product.stock <= 0 ? 'disabled' : ''}>
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function quickAdd(category, id, name, price) {
+    addToCart(category, id, name, price, 'new');
+}
+
+function addToCart(category, id, name, price, type = 'new') {
+    const existingItem = cart.find(item => item.category === category && item.id === id);
+    
+    if (existingItem) {
+        existingItem.quantity += 1;
+        existingItem.total = existingItem.quantity * existingItem.price;
+    } else {
+        cart.push({
+            category: category,
+            id: id,
+            name: name,
+            price: parseFloat(price),
+            quantity: 1,
+            total: parseFloat(price),
+            type: type
+        });
+    }
+    
+    updateCartDisplay();
+    updateTotals();
+}
+
+function removeFromCart(index) {
+    cart.splice(index, 1);
+    updateCartDisplay();
+    updateTotals();
+}
+
+function updateQuantity(index, quantity) {
+    if (quantity <= 0) {
+        removeFromCart(index);
+        return;
+    }
+    
+    cart[index].quantity = parseInt(quantity);
+    cart[index].total = cart[index].quantity * cart[index].price;
+    updateCartDisplay();
+    updateTotals();
+}
+
+function updateCartDisplay() {
+    const cartDiv = document.getElementById('cartItems');
+    
+    if (cart.length === 0) {
+        cartDiv.innerHTML = `
+            <div class="p-3 text-center text-muted">
+                <i class="fas fa-shopping-cart fa-2x mb-2"></i>
+                <p class="mb-0">Cart is empty</p>
+            </div>
+        `;
+        document.getElementById('processBtn').disabled = true;
+        return;
+    }
+
+    cartDiv.innerHTML = cart.map((item, index) => `
+        <div class="border-bottom p-2">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="flex-grow-1">
+                    <h6 class="mb-1">${item.name}</h6>
+                    <small class="text-muted">${item.type.toUpperCase()} - $${item.price.toFixed(2)} each</small>
+                </div>
+                <button class="btn btn-outline-danger btn-sm" onclick="removeFromCart(${index})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-2">
+                <div class="input-group" style="width: 100px;">
+                    <button class="btn btn-outline-secondary btn-sm" onclick="updateQuantity(${index}, ${item.quantity - 1})">-</button>
+                    <input type="number" class="form-control form-control-sm text-center" 
+                           value="${item.quantity}" min="1" 
+                           onchange="updateQuantity(${index}, this.value)">
+                    <button class="btn btn-outline-secondary btn-sm" onclick="updateQuantity(${index}, ${item.quantity + 1})">+</button>
+                </div>
+                <div class="fw-bold">$${item.total.toFixed(2)}</div>
+            </div>
+        </div>
+    `).join('');
+
+    document.getElementById('processBtn').disabled = false;
+}
+
+function updateTotals() {
+    const subtotal = cart.reduce((sum, item) => sum + item.total, 0);
+    const discountPercent = parseFloat(document.getElementById('discountPercent').value) || 0;
+    const discountAmount = subtotal * (discountPercent / 100);
+    const taxableAmount = subtotal - discountAmount;
+    const taxAmount = taxableAmount * 0.08; // 8% tax
+    const total = taxableAmount + taxAmount;
+
+    document.getElementById('subtotal').textContent = `$${subtotal.toFixed(2)}`;
+    document.getElementById('discountAmount').textContent = `-$${discountAmount.toFixed(2)}`;
+    document.getElementById('taxAmount').textContent = `$${taxAmount.toFixed(2)}`;
+    document.getElementById('totalAmount').textContent = `$${total.toFixed(2)}`;
+}
+
+function clearCart() {
+    cart = [];
+    updateCartDisplay();
+    updateTotals();
+}
+
+function updateCustomerInfo() {
+    const select = document.getElementById('customerSelect');
+    const option = select.options[select.selectedIndex];
+    const infoDiv = document.getElementById('customerInfo');
+
+    if (select.value) {
+        infoDiv.innerHTML = `
+            <strong>${option.dataset.name}</strong><br>
+            <small>${option.dataset.email || 'No email'}</small><br>
+            <small>${option.dataset.phone || 'No phone'}</small>
+        `;
+    } else {
+        infoDiv.innerHTML = 'Walk-in customer transaction';
+    }
+}
+
+function filterCustomers() {
+    const searchTerm = document.getElementById('customerSearch').value.toLowerCase();
+    const select = document.getElementById('customerSelect');
+    const options = select.getElementsByTagName('option');
+
+    for (let i = 1; i < options.length; i++) { // Skip first "Walk-in" option
+        const option = options[i];
+        const text = option.textContent.toLowerCase();
+        option.style.display = text.includes(searchTerm) ? '' : 'none';
+    }
+}
+
+async function processPayment() {
+    if (cart.length === 0) {
+        alert('Cart is empty!');
+        return;
+    }
+
+    const subtotal = cart.reduce((sum, item) => sum + item.total, 0);
+    const discountPercent = parseFloat(document.getElementById('discountPercent').value) || 0;
+    const discountAmount = subtotal * (discountPercent / 100);
+    const taxAmount = (subtotal - discountAmount) * 0.08;
+    const total = subtotal - discountAmount + taxAmount;
+
+    const customerSelect = document.getElementById('customerSelect');
+    const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+    const cashier = document.getElementById('cashierName').value;
+
+    const transactionData = {
+        customer_id: customerSelect.value || null,
+        cashier_name: cashier,
+        subtotal: subtotal.toFixed(2),
+        tax_amount: taxAmount.toFixed(2),
+        discount_amount: discountAmount.toFixed(2),
+        total_amount: total.toFixed(2),
+        payment_method: paymentMethod,
+        items: cart.map(item => ({
+            item_table: item.category,
+            item_id: item.id,
+            item_name: item.name,
+            item_type: item.type,
+            quantity: item.quantity,
+            unit_price: item.price.toFixed(2),
+            discount_percent: discountPercent,
+            total_price: item.total.toFixed(2)
+        }))
+    };
+
+    try {
+        const response = await fetch('/api/pos/process-transaction', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(transactionData)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showReceipt(result.transaction);
+            clearCart();
+            updateTotals();
+        } else {
+            alert('Transaction failed: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Error processing transaction:', error);
+        alert('Transaction failed. Please try again.');
+    }
+}
+
+function showReceipt(transaction) {
+    const receiptContent = document.getElementById('receiptContent');
+    const now = new Date();
+    
+    receiptContent.innerHTML = `
+        <div class="text-center mb-4">
+            <h4>Mobile Phone Store</h4>
+            <p class="mb-1">Receipt #${transaction.transaction_number}</p>
+            <p class="mb-1">${now.toLocaleDateString()} ${now.toLocaleTimeString()}</p>
+            <p class="mb-0">Cashier: ${transaction.cashier_name}</p>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th class="text-center">Qty</th>
+                        <th class="text-end">Price</th>
+                        <th class="text-end">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${cart.map(item => `
+                        <tr>
+                            <td>
+                                ${item.name}<br>
+                                <small class="text-muted">${item.type.toUpperCase()}</small>
+                            </td>
+                            <td class="text-center">${item.quantity}</td>
+                            <td class="text-end">$${item.price.toFixed(2)}</td>
+                            <td class="text-end">$${item.total.toFixed(2)}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="row">
+            <div class="col-6"></div>
+            <div class="col-6">
+                <div class="d-flex justify-content-between">
+                    <span>Subtotal:</span>
+                    <span>$${transaction.subtotal}</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>Discount:</span>
+                    <span>-$${transaction.discount_amount}</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>Tax:</span>
+                    <span>$${transaction.tax_amount}</span>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between fw-bold">
+                    <span>Total:</span>
+                    <span>$${transaction.total_amount}</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>Payment:</span>
+                    <span>${transaction.payment_method.toUpperCase()}</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="text-center mt-4">
+            <p class="mb-1">Thank you for your business!</p>
+            <p class="mb-0 small text-muted">30-day warranty on all devices</p>
+        </div>
+    `;
+    
+    const modal = new bootstrap.Modal(document.getElementById('successModal'));
+    modal.show();
+}
+
+function printReceipt() {
+    window.print();
+}
+
+function newTransaction() {
+    location.reload();
+}
+</script>
+
+<style>
+.card-body {
+    font-size: 0.9rem;
+}
+
+.btn-group .btn {
+    font-size: 0.8rem;
+}
+
+#cartItems {
+    font-size: 0.85rem;
+}
+
+@media print {
+    body * {
+        visibility: hidden;
+    }
+    #receiptContent, #receiptContent * {
+        visibility: visible;
+    }
+    #receiptContent {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+    }
+}
+</style>
+
+<%- include('../partials/footer') %>

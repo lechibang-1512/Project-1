@@ -1,0 +1,252 @@
+<%- include('../../partials/header', {title: title}) %>
+
+<div class="row mb-4">
+    <div class="col">
+        <h1><i class="fas fa-exchange-alt text-info"></i> Create New Trade-in</h1>
+        <p class="lead">Register a customer device trade-in</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0"><i class="fas fa-plus"></i> Trade-in Information</h5>
+            </div>
+            <div class="card-body">
+                <form id="tradeInForm" action="/api/pos/trade-ins/create" method="POST">
+                    <div class="row">
+                        <!-- Customer Information -->
+                        <div class="col-md-6">
+                            <h6 class="text-primary">Customer Information</h6>
+                            <div class="mb-3">
+                                <label for="customerSelect" class="form-label">Existing Customer</label>
+                                <select id="customerSelect" name="customer_id" class="form-select">
+                                    <option value="">Select existing customer</option>
+                                    <% customers.forEach(customer => { %>
+                                        <option value="<%= customer.id %>" data-name="<%= customer.name %>" 
+                                                data-email="<%= customer.email %>" data-phone="<%= customer.phone %>">
+                                            <%= customer.name %>
+                                        </option>
+                                    <% }); %>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="customerName" class="form-label">Customer Name *</label>
+                                <input type="text" id="customerName" name="customer_name" class="form-control" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="customerPhone" class="form-label">Phone *</label>
+                                <input type="tel" id="customerPhone" name="customer_phone" class="form-control" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="customerEmail" class="form-label">Email</label>
+                                <input type="email" id="customerEmail" name="customer_email" class="form-control">
+                            </div>
+                        </div>
+                        
+                        <!-- Device Information -->
+                        <div class="col-md-6">
+                            <h6 class="text-primary">Device Information</h6>
+                            <div class="mb-3">
+                                <label for="deviceBrand" class="form-label">Brand *</label>
+                                <select id="deviceBrand" name="device_brand" class="form-select" required>
+                                    <option value="">Select brand</option>
+                                    <option value="Apple">Apple</option>
+                                    <option value="Samsung">Samsung</option>
+                                    <option value="POCO">POCO</option>
+                                    <option value="Xiaomi">Xiaomi</option>
+                                    <option value="Huawei">Huawei</option>
+                                    <option value="OnePlus">OnePlus</option>
+                                    <option value="Google">Google</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="deviceModel" class="form-label">Model *</label>
+                                <input type="text" id="deviceModel" name="device_model" class="form-control" 
+                                       placeholder="e.g., iPhone 13, Galaxy S22" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="deviceCondition" class="form-label">Condition *</label>
+                                <select id="deviceCondition" name="device_condition" class="form-select" required>
+                                    <option value="">Select condition</option>
+                                    <option value="Excellent">Excellent - Like new</option>
+                                    <option value="Good">Good - Minor wear</option>
+                                    <option value="Fair">Fair - Visible wear</option>
+                                    <option value="Poor">Poor - Significant damage</option>
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="deviceStorage" class="form-label">Storage</label>
+                                <input type="text" id="deviceStorage" name="device_storage" class="form-control" 
+                                       placeholder="e.g., 128GB, 256GB">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Additional Information -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="originalPrice" class="form-label">Original Purchase Price</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" id="originalPrice" name="original_price" class="form-control" 
+                                           step="0.01" placeholder="0.00">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="offeredAmount" class="form-label">Offered Amount</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" id="offeredAmount" name="offered_amount" class="form-control" 
+                                           step="0.01" placeholder="0.00">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea id="notes" name="notes" class="form-control" rows="3" 
+                                  placeholder="Any additional details about the device condition, accessories included, etc."></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="hasCharger" name="has_charger">
+                            <label class="form-check-label" for="hasCharger">
+                                Includes original charger
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="hasBox" name="has_box">
+                            <label class="form-check-label" for="hasBox">
+                                Includes original box
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="button" class="btn btn-secondary" onclick="window.history.back()">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                        <button type="submit" class="btn btn-info">
+                            <i class="fas fa-plus"></i> Create Trade-in
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Trade-in Evaluation Guide -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h6 class="card-title mb-0"><i class="fas fa-info-circle"></i> Evaluation Guide</h6>
+            </div>
+            <div class="card-body">
+                <h6>Condition Definitions:</h6>
+                <small>
+                    <strong>Excellent:</strong> Device looks and functions like new<br>
+                    <strong>Good:</strong> Minor cosmetic wear, fully functional<br>
+                    <strong>Fair:</strong> Visible wear but works properly<br>
+                    <strong>Poor:</strong> Significant damage or functional issues
+                </small>
+                
+                <hr>
+                
+                <h6>Quick Pricing Guide:</h6>
+                <small>
+                    <strong>iPhone 13 (128GB):</strong><br>
+                    Excellent: $400-450<br>
+                    Good: $350-400<br>
+                    Fair: $300-350<br>
+                    Poor: $200-300<br><br>
+                    
+                    <strong>Samsung Galaxy S22:</strong><br>
+                    Excellent: $300-350<br>
+                    Good: $250-300<br>
+                    Fair: $200-250<br>
+                    Poor: $150-200
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Customer selection handler
+    document.getElementById('customerSelect').addEventListener('change', function() {
+        const option = this.options[this.selectedIndex];
+        if (option.value) {
+            document.getElementById('customerName').value = option.dataset.name || '';
+            document.getElementById('customerPhone').value = option.dataset.phone || '';
+            document.getElementById('customerEmail').value = option.dataset.email || '';
+        }
+    });
+    
+    // Form validation and submission
+    document.getElementById('tradeInForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Basic validation
+        const requiredFields = ['customer_name', 'customer_phone', 'device_brand', 'device_model', 'device_condition'];
+        let isValid = true;
+        
+        requiredFields.forEach(field => {
+            const input = document.getElementById(field.replace('_', ''));
+            if (!input.value.trim()) {
+                input.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                input.classList.remove('is-invalid');
+            }
+        });
+        
+        if (!isValid) {
+            alert('Please fill in all required fields');
+            return;
+        }
+        
+        // Submit the form
+        const formData = new FormData(this);
+        const data = Object.fromEntries(formData.entries());
+        
+        fetch('/api/pos/trade-ins/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                alert('Trade-in created successfully!');
+                window.location.href = '/pos/trade-ins';
+            } else {
+                alert('Error creating trade-in: ' + result.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while creating the trade-in');
+        });
+    });
+});
+</script>
+
+<%- include('../../partials/footer') %>

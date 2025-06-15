@@ -1,0 +1,398 @@
+<%- include('../partials/header', {title: title}) %>
+
+<div class="row mb-4">
+    <div class="col">
+        <h1><i class="fas fa-mobile-alt text-success"></i> Used Inventory Management</h1>
+        <p class="lead">Manage refurbished and used phone inventory</p>
+    </div>
+    <div class="col-auto">
+        <a href="/pos/used-inventory/add" class="btn btn-success">
+            <i class="fas fa-plus"></i> Add Used Phone
+        </a>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4><%= stats.total_devices %></h4>
+                        <span>Total Devices</span>
+                    </div>
+                    <i class="fas fa-mobile-alt fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4><%= stats.in_stock %></h4>
+                        <span>In Stock</span>
+                    </div>
+                    <i class="fas fa-check-circle fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4><%= stats.sold %></h4>
+                        <span>Sold</span>
+                    </div>
+                    <i class="fas fa-shopping-cart fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>$<%= parseFloat(stats.total_value || 0).toFixed(0) %></h4>
+                        <span>Total Value</span>
+                    </div>
+                    <i class="fas fa-dollar-sign fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" action="/pos/used-inventory" class="row g-3">
+            <div class="col-md-2">
+                <label for="brand" class="form-label">Brand</label>
+                <select name="brand" id="brand" class="form-select">
+                    <option value="all" <%= currentFilters.brand === 'all' || !currentFilters.brand ? 'selected' : '' %>>All Brands</option>
+                    <option value="Apple" <%= currentFilters.brand === 'Apple' ? 'selected' : '' %>>Apple</option>
+                    <option value="Samsung" <%= currentFilters.brand === 'Samsung' ? 'selected' : '' %>>Samsung</option>
+                    <option value="POCO" <%= currentFilters.brand === 'POCO' ? 'selected' : '' %>>POCO</option>
+                    <option value="Xiaomi" <%= currentFilters.brand === 'Xiaomi' ? 'selected' : '' %>>Xiaomi</option>
+                    <option value="Other" <%= currentFilters.brand === 'Other' ? 'selected' : '' %>>Other</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="condition" class="form-label">Condition</label>
+                <select name="condition" id="condition" class="form-select">
+                    <option value="all" <%= currentFilters.condition === 'all' || !currentFilters.condition ? 'selected' : '' %>>All Conditions</option>
+                    <option value="Excellent" <%= currentFilters.condition === 'Excellent' ? 'selected' : '' %>>Excellent</option>
+                    <option value="Good" <%= currentFilters.condition === 'Good' ? 'selected' : '' %>>Good</option>
+                    <option value="Fair" <%= currentFilters.condition === 'Fair' ? 'selected' : '' %>>Fair</option>
+                    <option value="Poor" <%= currentFilters.condition === 'Poor' ? 'selected' : '' %>>Poor</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="stock" class="form-label">Stock Status</label>
+                <select name="stock" id="stock" class="form-select">
+                    <option value="all" <%= currentFilters.stock === 'all' || !currentFilters.stock ? 'selected' : '' %>>All</option>
+                    <option value="in_stock" <%= currentFilters.stock === 'in_stock' ? 'selected' : '' %>>In Stock</option>
+                    <option value="sold" <%= currentFilters.stock === 'sold' ? 'selected' : '' %>>Sold</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="search" class="form-label">Search</label>
+                <input type="text" name="search" id="search" class="form-control" 
+                       placeholder="Search by model..." value="<%= currentFilters.search || '' %>">
+            </div>
+            <div class="col-md-1">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Inventory Table -->
+<div class="card">
+    <div class="card-body">
+        <% if (inventory.length === 0) { %>
+            <div class="text-center py-5">
+                <i class="fas fa-mobile-alt fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">No devices found</h4>
+                <p class="text-muted">Try adjusting your filters or <a href="/pos/used-inventory/add">add a new device</a>.</p>
+            </div>
+        <% } else { %>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Device</th>
+                            <th>Condition</th>
+                            <th>Purchase Price</th>
+                            <th>Selling Price</th>
+                            <th>Profit Margin</th>
+                            <th>Stock</th>
+                            <th>Source</th>
+                            <th>Date Added</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% inventory.forEach(function(item) { 
+                            const purchasePrice = parseFloat(item.purchase_price || 0);
+                            const sellingPrice = parseFloat(item.selling_price || 0);
+                            const profitMargin = purchasePrice > 0 ? ((sellingPrice - purchasePrice) / purchasePrice * 100) : 0;
+                            const stockStatus = item.stock_quantity > 0 ? 'success' : 'danger';
+                            const conditionColor = {
+                                'Excellent': 'success',
+                                'Good': 'primary',
+                                'Fair': 'warning',
+                                'Poor': 'danger'
+                            }[item.device_condition] || 'secondary';
+                        %>
+                            <tr>
+                                <td>
+                                    <strong><%= item.device_brand %> <%= item.device_model %></strong>
+                                    <% if (item.device_storage) { %>
+                                        <br><small class="text-muted"><%= item.device_storage %></small>
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <span class="badge bg-<%= conditionColor %>"><%= item.device_condition %></span>
+                                </td>
+                                <td>$<%= purchasePrice.toFixed(2) %></td>
+                                <td>
+                                    <strong>$<%= sellingPrice.toFixed(2) %></strong>
+                                </td>
+                                <td>
+                                    <span class="<%= profitMargin >= 20 ? 'text-success' : profitMargin >= 10 ? 'text-warning' : 'text-danger' %>">
+                                        <%= profitMargin.toFixed(1) %>%
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-<%= stockStatus %>">
+                                        <%= item.stock_quantity > 0 ? 'In Stock (' + item.stock_quantity + ')' : 'Sold' %>
+                                    </span>
+                                </td>
+                                <td>
+                                    <small class="text-capitalize"><%= item.source || 'unknown' %></small>
+                                </td>
+                                <td>
+                                    <small><%= new Date(item.created_at).toLocaleDateString() %></small>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button type="button" class="btn btn-outline-primary" 
+                                                onclick="editDevice(<%= item.id %>)">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <% if (item.stock_quantity > 0) { %>
+                                            <button type="button" class="btn btn-outline-success" 
+                                                    onclick="markAsSold(<%= item.id %>)">
+                                                <i class="fas fa-shopping-cart"></i>
+                                            </button>
+                                        <% } %>
+                                        <button type="button" class="btn btn-outline-info" 
+                                                onclick="viewDetails(<%= item.id %>)">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            </div>
+        <% } %>
+    </div>
+</div>
+
+<!-- Quick Edit Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Device</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editForm">
+                    <input type="hidden" id="editDeviceId">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editSellingPrice" class="form-label">Selling Price</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" id="editSellingPrice" class="form-control" step="0.01" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editStockQuantity" class="form-label">Stock Quantity</label>
+                                <input type="number" id="editStockQuantity" class="form-control" min="0" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editCondition" class="form-label">Condition</label>
+                        <select id="editCondition" class="form-select" required>
+                            <option value="Excellent">Excellent</option>
+                            <option value="Good">Good</option>
+                            <option value="Fair">Fair</option>
+                            <option value="Poor">Poor</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editNotes" class="form-label">Notes</label>
+                        <textarea id="editNotes" class="form-control" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveDeviceChanges()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Mark as Sold Modal -->
+<div class="modal fade" id="soldModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Mark as Sold</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="soldForm">
+                    <input type="hidden" id="soldDeviceId">
+                    <div class="mb-3">
+                        <label for="soldQuantity" class="form-label">Quantity Sold</label>
+                        <input type="number" id="soldQuantity" class="form-control" min="1" value="1" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="soldPrice" class="form-label">Actual Selling Price</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" id="soldPrice" class="form-control" step="0.01" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="soldNotes" class="form-label">Sale Notes</label>
+                        <textarea id="soldNotes" class="form-control" rows="2" 
+                                  placeholder="Customer info, transaction details, etc."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="confirmSale()">Mark as Sold</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let selectedDeviceId = null;
+
+function editDevice(deviceId) {
+    selectedDeviceId = deviceId;
+    // In a real application, you would fetch the device details via API
+    // For now, we'll show the modal with empty fields
+    document.getElementById('editDeviceId').value = deviceId;
+    
+    const modal = new bootstrap.Modal(document.getElementById('editModal'));
+    modal.show();
+}
+
+function markAsSold(deviceId) {
+    selectedDeviceId = deviceId;
+    document.getElementById('soldDeviceId').value = deviceId;
+    
+    const modal = new bootstrap.Modal(document.getElementById('soldModal'));
+    modal.show();
+}
+
+function viewDetails(deviceId) {
+    // Redirect to device details page
+    window.location.href = `/pos/used-inventory/${deviceId}`;
+}
+
+function saveDeviceChanges() {
+    const deviceId = document.getElementById('editDeviceId').value;
+    const data = {
+        selling_price: document.getElementById('editSellingPrice').value,
+        stock_quantity: document.getElementById('editStockQuantity').value,
+        device_condition: document.getElementById('editCondition').value,
+        notes: document.getElementById('editNotes').value
+    };
+    
+    fetch(`/api/pos/used-inventory/${deviceId}/update`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            alert('Device updated successfully!');
+            location.reload();
+        } else {
+            alert('Error updating device: ' + result.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while updating the device');
+    });
+}
+
+function confirmSale() {
+    const deviceId = document.getElementById('soldDeviceId').value;
+    const data = {
+        quantity: document.getElementById('soldQuantity').value,
+        sold_price: document.getElementById('soldPrice').value,
+        notes: document.getElementById('soldNotes').value
+    };
+    
+    fetch(`/api/pos/used-inventory/${deviceId}/sell`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            alert('Device marked as sold successfully!');
+            location.reload();
+        } else {
+            alert('Error marking device as sold: ' + result.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while marking the device as sold');
+    });
+}
+
+// Auto-fill selling price in sold modal when device is selected
+function fillSoldPrice(deviceId) {
+    // This would be populated from the device data in a real implementation
+    // For now, we'll leave it for the user to enter
+}
+</script>
+
+<%- include('../partials/footer') %>
