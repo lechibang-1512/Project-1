@@ -1,0 +1,279 @@
+<%- include('../../partials/header', {title: title}) %>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-file-invoice text-success"></i> <%= purchaseOrder.po_number %></h1>
+    <div>
+        <a href="/orders/purchase" class="btn btn-outline-secondary me-2">
+            <i class="fas fa-arrow-left"></i> Back to Purchase Orders
+        </a>
+        <% if (purchaseOrder.status !== 'Received' && purchaseOrder.status !== 'Cancelled') { %>
+            <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#statusModal">
+                <i class="fas fa-edit"></i> Update Status
+            </button>
+        <% } %>
+    </div>
+</div>
+
+<!-- Success/Error Messages -->
+<% if (typeof query !== 'undefined' && query.success) { %>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <%= query.success %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+<% } %>
+
+<div class="row">
+    <div class="col-md-8">
+        <!-- Purchase Order Details -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">Purchase Order Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <dl class="row">
+                            <dt class="col-sm-4">PO Number:</dt>
+                            <dd class="col-sm-8"><%= purchaseOrder.po_number %></dd>
+                            <dt class="col-sm-4">Status:</dt>
+                            <dd class="col-sm-8">
+                                <span class="badge bg-<%= purchaseOrder.status === 'Received' ? 'success' : purchaseOrder.status === 'Cancelled' ? 'danger' : purchaseOrder.status === 'Shipped' ? 'info' : 'warning' %> fs-6">
+                                    <%= purchaseOrder.status %>
+                                </span>
+                            </dd>
+                            <dt class="col-sm-4">Order Date:</dt>
+                            <dd class="col-sm-8"><%= new Date(purchaseOrder.order_date).toLocaleDateString() %></dd>
+                            <dt class="col-sm-4">Expected Delivery:</dt>
+                            <dd class="col-sm-8"><%= purchaseOrder.expected_delivery_date ? new Date(purchaseOrder.expected_delivery_date).toLocaleDateString() : 'N/A' %></dd>
+                            <% if (purchaseOrder.actual_delivery_date) { %>
+                                <dt class="col-sm-4">Actual Delivery:</dt>
+                                <dd class="col-sm-8"><%= new Date(purchaseOrder.actual_delivery_date).toLocaleDateString() %></dd>
+                            <% } %>
+                        </dl>
+                    </div>
+                    <div class="col-md-6">
+                        <dl class="row">
+                            <dt class="col-sm-4">Supplier:</dt>
+                            <dd class="col-sm-8"><%= purchaseOrder.supplier_name || 'N/A' %></dd>
+                            <% if (purchaseOrder.supplier_email) { %>
+                                <dt class="col-sm-4">Email:</dt>
+                                <dd class="col-sm-8"><a href="mailto:<%= purchaseOrder.supplier_email %>"><%= purchaseOrder.supplier_email %></a></dd>
+                            <% } %>
+                            <% if (purchaseOrder.supplier_phone) { %>
+                                <dt class="col-sm-4">Phone:</dt>
+                                <dd class="col-sm-8"><%= purchaseOrder.supplier_phone %></dd>
+                            <% } %>
+                        </dl>
+                    </div>
+                    <% if (purchaseOrder.notes) { %>
+                        <div class="col-md-12">
+                            <dt>Notes:</dt>
+                            <dd><%= purchaseOrder.notes %></dd>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+
+        <!-- Order Items -->
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">Order Items</h5>
+            </div>
+            <div class="card-body p-0">
+                <% if (items.length > 0) { %>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Quantity</th>
+                                    <th>Unit Price</th>
+                                    <th>Total Price</th>
+                                    <th>Received</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% items.forEach(function(item) { %>
+                                    <tr>
+                                        <td>
+                                            <strong><%= item.item_name %></strong><br>
+                                            <small class="text-muted">Table: <%= item.item_table %></small>
+                                        </td>
+                                        <td><%= item.quantity %></td>
+                                        <td>$<%= parseFloat(item.unit_price || 0).toFixed(2) %></td>
+                                        <td><strong>$<%= parseFloat(item.total_price || 0).toFixed(2) %></strong></td>
+                                        <td>
+                                            <span class="badge bg-<%= item.received_quantity >= item.quantity ? 'success' : 'warning' %>">
+                                                <%= item.received_quantity %>/<%= item.quantity %>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } else { %>
+                    <div class="text-center py-4">
+                        <p class="text-muted">No items in this purchase order.</p>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <!-- Order Summary -->
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0">Order Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col">Subtotal:</div>
+                    <div class="col text-end">$<%= parseFloat(purchaseOrder.subtotal || 0).toFixed(2) %></div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col">Tax:</div>
+                    <div class="col text-end">$<%= parseFloat(purchaseOrder.tax_amount || 0).toFixed(2) %></div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col">Shipping:</div>
+                    <div class="col text-end">$<%= parseFloat(purchaseOrder.shipping_cost || 0).toFixed(2) %></div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col"><strong>Total:</strong></div>
+                    <div class="col text-end"><strong>$<%= parseFloat(purchaseOrder.total_amount || 0).toFixed(2) %></strong></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Order Timeline -->
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="card-title mb-0">Order Timeline</h5>
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-success"></div>
+                        <div class="timeline-content">
+                            <h6>Order Created</h6>
+                            <small><%= new Date(purchaseOrder.created_at).toLocaleString() %></small>
+                        </div>
+                    </div>
+                    <% if (purchaseOrder.status !== 'Draft') { %>
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-warning"></div>
+                            <div class="timeline-content">
+                                <h6>Order Placed</h6>
+                                <small>Status: <%= purchaseOrder.status %></small>
+                            </div>
+                        </div>
+                    <% } %>
+                    <% if (purchaseOrder.status === 'Shipped' || purchaseOrder.status === 'Received') { %>
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-info"></div>
+                            <div class="timeline-content">
+                                <h6>Order Shipped</h6>
+                                <small>In transit</small>
+                            </div>
+                        </div>
+                    <% } %>
+                    <% if (purchaseOrder.status === 'Received') { %>
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-success"></div>
+                            <div class="timeline-content">
+                                <h6>Order Received</h6>
+                                <small><%= purchaseOrder.actual_delivery_date ? new Date(purchaseOrder.actual_delivery_date).toLocaleString() : 'Today' %></small>
+                            </div>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Status Update Modal -->
+<% if (purchaseOrder.status !== 'Received' && purchaseOrder.status !== 'Cancelled') { %>
+<div class="modal fade" id="statusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="/orders/purchase/<%= purchaseOrder.id %>/status">
+                <div class="modal-header">
+                    <h5 class="modal-title">Update Order Status</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="status" class="form-label">New Status</label>
+                        <select name="status" id="status" class="form-select" required>
+                            <option value="Draft" <%= purchaseOrder.status === 'Draft' ? 'selected' : '' %>>Draft</option>
+                            <option value="Ordered" <%= purchaseOrder.status === 'Ordered' ? 'selected' : '' %>>Ordered</option>
+                            <option value="Shipped" <%= purchaseOrder.status === 'Shipped' ? 'selected' : '' %>>Shipped</option>
+                            <option value="Received">Received</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="deliveryDateDiv" style="display: none;">
+                        <label for="actual_delivery_date" class="form-label">Actual Delivery Date</label>
+                        <input type="date" name="actual_delivery_date" id="actual_delivery_date" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Status</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<% } %>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 2rem;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.timeline-item:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: -1.5rem;
+    top: 1.5rem;
+    width: 2px;
+    height: calc(100% + 1rem);
+    background-color: #dee2e6;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -1.75rem;
+    top: 0.25rem;
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+</style>
+
+<script>
+document.getElementById('status').addEventListener('change', function() {
+    const deliveryDateDiv = document.getElementById('deliveryDateDiv');
+    if (this.value === 'Received') {
+        deliveryDateDiv.style.display = 'block';
+        document.getElementById('actual_delivery_date').valueAsDate = new Date();
+    } else {
+        deliveryDateDiv.style.display = 'none';
+    }
+});
+</script>
+
+<%- include('../../partials/footer') %>

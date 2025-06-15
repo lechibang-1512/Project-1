@@ -1,0 +1,266 @@
+<%- include('../partials/header', {title: title}) %>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-file-invoice text-primary"></i> Order Management Dashboard</h1>
+</div>
+
+<!-- Success/Error Messages -->
+<% if (typeof query !== 'undefined' && query.success) { %>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <%= query.success %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+<% } %>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <!-- Purchase Order Stats -->
+    <div class="col-md-6">
+        <h3><i class="fas fa-shopping-cart text-success"></i> Purchase Orders</h3>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4><%= poStats.total %></h4>
+                                <span>Total POs</span>
+                            </div>
+                            <i class="fas fa-shopping-cart fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4><%= poStats.pending %></h4>
+                                <span>Pending</span>
+                            </div>
+                            <i class="fas fa-clock fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4><%= poStats.completed %></h4>
+                                <span>Received</span>
+                            </div>
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4>$<%= poStats.total_value.toLocaleString() %></h4>
+                                <span>Total Value</span>
+                            </div>
+                            <i class="fas fa-dollar-sign fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sales Order Stats -->
+    <div class="col-md-6">
+        <h3><i class="fas fa-receipt text-info"></i> Sales Orders</h3>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4><%= soStats.total %></h4>
+                                <span>Total SOs</span>
+                            </div>
+                            <i class="fas fa-receipt fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4><%= soStats.pending %></h4>
+                                <span>Pending</span>
+                            </div>
+                            <i class="fas fa-clock fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4><%= soStats.completed %></h4>
+                                <span>Delivered</span>
+                            </div>
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4>$<%= soStats.total_value.toLocaleString() %></h4>
+                                <span>Total Revenue</span>
+                            </div>
+                            <i class="fas fa-dollar-sign fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="card-title mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <a href="/orders/purchase/create" class="btn btn-success btn-block w-100">
+                            <i class="fas fa-plus"></i> New Purchase Order
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="/orders/sales/create" class="btn btn-primary btn-block w-100">
+                            <i class="fas fa-plus"></i> New Sales Order
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="/orders/customers/add" class="btn btn-info btn-block w-100">
+                            <i class="fas fa-user-plus"></i> Add Customer
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="/orders/purchase" class="btn btn-outline-secondary btn-block w-100">
+                            <i class="fas fa-list"></i> View All Orders
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Orders -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">Recent Purchase Orders</h5>
+            </div>
+            <div class="card-body">
+                <% if (recentPOs.length > 0) { %>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>PO Number</th>
+                                    <th>Supplier</th>
+                                    <th>Status</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% recentPOs.forEach(function(po) { %>
+                                    <tr>
+                                        <td><a href="/orders/purchase/<%= po.id %>"><%= po.po_number %></a></td>
+                                        <td><%= po.supplier_name || 'N/A' %></td>
+                                        <td>
+                                            <span class="badge bg-<%= po.status === 'Received' ? 'success' : po.status === 'Cancelled' ? 'danger' : 'warning' %>">
+                                                <%= po.status %>
+                                            </span>
+                                        </td>
+                                        <td>$<%= po.total_amount.toLocaleString() %></td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-center mt-3">
+                        <a href="/orders/purchase" class="btn btn-outline-success">View All Purchase Orders</a>
+                    </div>
+                <% } else { %>
+                    <p class="text-muted text-center">No purchase orders yet.</p>
+                    <div class="text-center">
+                        <a href="/orders/purchase/create" class="btn btn-success">Create First Purchase Order</a>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0">Recent Sales Orders</h5>
+            </div>
+            <div class="card-body">
+                <% if (recentSOs.length > 0) { %>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>SO Number</th>
+                                    <th>Customer</th>
+                                    <th>Status</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% recentSOs.forEach(function(so) { %>
+                                    <tr>
+                                        <td><a href="/orders/sales/<%= so.id %>"><%= so.so_number %></a></td>
+                                        <td><%= so.registered_customer_name || so.customer_name || 'Guest' %></td>
+                                        <td>
+                                            <span class="badge bg-<%= so.status === 'Delivered' ? 'success' : so.status === 'Cancelled' ? 'danger' : 'warning' %>">
+                                                <%= so.status %>
+                                            </span>
+                                        </td>
+                                        <td>$<%= so.total_amount.toLocaleString() %></td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-center mt-3">
+                        <a href="/orders/sales" class="btn btn-outline-info">View All Sales Orders</a>
+                    </div>
+                <% } else { %>
+                    <p class="text-muted text-center">No sales orders yet.</p>
+                    <div class="text-center">
+                        <a href="/orders/sales/create" class="btn btn-primary">Create First Sales Order</a>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include('../partials/footer') %>

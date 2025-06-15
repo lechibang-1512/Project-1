@@ -1,0 +1,209 @@
+<%- include('../../partials/header', {title: title}) %>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-user text-info"></i> <%= customer.name %></h1>
+    <div>
+        <a href="/orders/customers" class="btn btn-outline-secondary me-2">
+            <i class="fas fa-arrow-left"></i> Back to Customers
+        </a>
+        <a href="/orders/customers/<%= customer.id %>/edit" class="btn btn-warning">
+            <i class="fas fa-edit"></i> Edit Customer
+        </a>
+    </div>
+</div>
+
+<!-- Success/Error Messages -->
+<% if (typeof query !== 'undefined' && query.success) { %>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <%= query.success %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+<% } %>
+
+<div class="row">
+    <div class="col-md-8">
+        <!-- Customer Details -->
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0">Customer Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <dl class="row">
+                            <dt class="col-sm-4">Name:</dt>
+                            <dd class="col-sm-8"><%= customer.name %></dd>
+                            <dt class="col-sm-4">Company:</dt>
+                            <dd class="col-sm-8"><%= customer.company || 'N/A' %></dd>
+                            <dt class="col-sm-4">Status:</dt>
+                            <dd class="col-sm-8">
+                                <span class="badge bg-<%= customer.is_active ? 'success' : 'danger' %> fs-6">
+                                    <%= customer.is_active ? 'Active' : 'Inactive' %>
+                                </span>
+                            </dd>
+                        </dl>
+                    </div>
+                    <div class="col-md-6">
+                        <dl class="row">
+                            <% if (customer.email) { %>
+                                <dt class="col-sm-4">Email:</dt>
+                                <dd class="col-sm-8"><a href="mailto:<%= customer.email %>"><%= customer.email %></a></dd>
+                            <% } %>
+                            <% if (customer.phone) { %>
+                                <dt class="col-sm-4">Phone:</dt>
+                                <dd class="col-sm-8"><%= customer.phone %></dd>
+                            <% } %>
+                            <dt class="col-sm-4">Member Since:</dt>
+                            <dd class="col-sm-8"><%= new Date(customer.created_at).toLocaleDateString() %></dd>
+                        </dl>
+                    </div>
+                    <% if (customer.address) { %>
+                        <div class="col-md-12">
+                            <dt>Address:</dt>
+                            <dd><%= customer.address %></dd>
+                        </div>
+                    <% } %>
+                    <% if (customer.notes) { %>
+                        <div class="col-md-12">
+                            <dt>Notes:</dt>
+                            <dd><%= customer.notes %></dd>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customer Orders -->
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">Order History</h5>
+            </div>
+            <div class="card-body p-0">
+                <% if (orders && orders.length > 0) { %>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Order Number</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                    <th>Total</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% orders.forEach(function(order) { %>
+                                    <tr>
+                                        <td>
+                                            <a href="/orders/sales/<%= order.id %>"><%= order.so_number %></a>
+                                        </td>
+                                        <td><%= new Date(order.order_date).toLocaleDateString() %></td>
+                                        <td>
+                                            <span class="badge bg-<%= order.status === 'Delivered' ? 'success' : order.status === 'Cancelled' ? 'danger' : 'warning' %>">
+                                                <%= order.status %>
+                                            </span>
+                                        </td>
+                                        <td><strong>$<%= order.total_amount.toLocaleString() %></strong></td>
+                                        <td>
+                                            <a href="/orders/sales/<%= order.id %>" class="btn btn-outline-primary btn-sm">
+                                                <i class="fas fa-eye"></i> View
+                                            </a>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } else { %>
+                    <div class="text-center py-4">
+                        <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No orders yet.</p>
+                        <a href="/orders/sales/create" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Create Order
+                        </a>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <!-- Customer Statistics -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">Customer Statistics</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <h3 class="text-primary"><%= stats.total_orders %></h3>
+                        <small class="text-muted">Total Orders</small>
+                    </div>
+                    <div class="col-6">
+                        <h3 class="text-success">$<%= stats.total_spent.toLocaleString() %></h3>
+                        <small class="text-muted">Total Spent</small>
+                    </div>
+                </div>
+                <hr>
+                <div class="row text-center">
+                    <div class="col-6">
+                        <h4 class="text-info"><%= stats.pending_orders %></h4>
+                        <small class="text-muted">Pending Orders</small>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-warning">$<%= stats.avg_order_value.toLocaleString() %></h4>
+                        <small class="text-muted">Avg Order Value</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="card-title mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="/orders/sales/create?customer_id=<%= customer.id %>" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Create New Order
+                    </a>
+                    <a href="/orders/customers/<%= customer.id %>/edit" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> Edit Customer
+                    </a>
+                    <button type="button" class="btn btn-<%= customer.is_active ? 'danger' : 'success' %>" onclick="toggleStatus()">
+                        <i class="fas fa-<%= customer.is_active ? 'ban' : 'check' %>"></i> 
+                        <%= customer.is_active ? 'Deactivate' : 'Activate' %>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleStatus() {
+    if (confirm('Are you sure you want to <%= customer.is_active ? "deactivate" : "activate" %> this customer?')) {
+        fetch('/orders/customers/<%= customer.id %>/toggle-status', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error updating customer status');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error updating customer status');
+        });
+    }
+}
+</script>
+
+<%- include('../../partials/footer') %>

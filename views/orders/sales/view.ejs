@@ -1,0 +1,307 @@
+<%- include('../../partials/header', {title: title}) %>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-receipt text-info"></i> <%= salesOrder.so_number %></h1>
+    <div>
+        <a href="/orders/sales" class="btn btn-outline-secondary me-2">
+            <i class="fas fa-arrow-left"></i> Back to Sales Orders
+        </a>
+        <% if (salesOrder.status !== 'Delivered' && salesOrder.status !== 'Cancelled') { %>
+            <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#statusModal">
+                <i class="fas fa-edit"></i> Update Status
+            </button>
+        <% } %>
+    </div>
+</div>
+
+<!-- Success/Error Messages -->
+<% if (typeof query !== 'undefined' && query.success) { %>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <%= query.success %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+<% } %>
+
+<div class="row">
+    <div class="col-md-8">
+        <!-- Sales Order Details -->
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0">Sales Order Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <dl class="row">
+                            <dt class="col-sm-4">SO Number:</dt>
+                            <dd class="col-sm-8"><%= salesOrder.so_number %></dd>
+                            <dt class="col-sm-4">Status:</dt>
+                            <dd class="col-sm-8">
+                                <span class="badge bg-<%= salesOrder.status === 'Delivered' ? 'success' : salesOrder.status === 'Cancelled' ? 'danger' : salesOrder.status === 'Shipped' ? 'info' : 'warning' %> fs-6">
+                                    <%= salesOrder.status %>
+                                </span>
+                            </dd>
+                            <dt class="col-sm-4">Order Date:</dt>
+                            <dd class="col-sm-8"><%= new Date(salesOrder.order_date).toLocaleDateString() %></dd>
+                            <% if (salesOrder.ship_date) { %>
+                                <dt class="col-sm-4">Ship Date:</dt>
+                                <dd class="col-sm-8"><%= new Date(salesOrder.ship_date).toLocaleDateString() %></dd>
+                            <% } %>
+                            <% if (salesOrder.delivery_date) { %>
+                                <dt class="col-sm-4">Delivery Date:</dt>
+                                <dd class="col-sm-8"><%= new Date(salesOrder.delivery_date).toLocaleDateString() %></dd>
+                            <% } %>
+                        </dl>
+                    </div>
+                    <div class="col-md-6">
+                        <dl class="row">
+                            <dt class="col-sm-4">Customer:</dt>
+                            <dd class="col-sm-8">
+                                <% if (salesOrder.customer_id) { %>
+                                    <a href="/orders/customers/<%= salesOrder.customer_id %>"><%= salesOrder.registered_customer_name %></a>
+                                <% } else { %>
+                                    <%= salesOrder.customer_name || 'Guest Order' %>
+                                <% } %>
+                            </dd>
+                            <% if (salesOrder.customer_email) { %>
+                                <dt class="col-sm-4">Email:</dt>
+                                <dd class="col-sm-8"><a href="mailto:<%= salesOrder.customer_email %>"><%= salesOrder.customer_email %></a></dd>
+                            <% } %>
+                            <% if (salesOrder.customer_phone) { %>
+                                <dt class="col-sm-4">Phone:</dt>
+                                <dd class="col-sm-8"><%= salesOrder.customer_phone %></dd>
+                            <% } %>
+                        </dl>
+                    </div>
+                    <% if (salesOrder.shipping_address) { %>
+                        <div class="col-md-12">
+                            <dt>Shipping Address:</dt>
+                            <dd><%= salesOrder.shipping_address %></dd>
+                        </div>
+                    <% } %>
+                    <% if (salesOrder.notes) { %>
+                        <div class="col-md-12">
+                            <dt>Notes:</dt>
+                            <dd><%= salesOrder.notes %></dd>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+
+        <!-- Order Items -->
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">Order Items</h5>
+            </div>
+            <div class="card-body p-0">
+                <% if (items.length > 0) { %>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Quantity</th>
+                                    <th>Unit Price</th>
+                                    <th>Total Price</th>
+                                    <th>Shipped</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% items.forEach(function(item) { %>
+                                    <tr>
+                                        <td>
+                                            <strong><%= item.item_name %></strong><br>
+                                            <small class="text-muted">Table: <%= item.item_table %></small>
+                                        </td>
+                                        <td><%= item.quantity %></td>
+                                        <td>$<%= parseFloat(item.unit_price || 0).toFixed(2) %></td>
+                                        <td><strong>$<%= parseFloat(item.total_price || 0).toFixed(2) %></strong></td>
+                                        <td>
+                                            <span class="badge bg-<%= item.shipped_quantity >= item.quantity ? 'success' : 'warning' %>">
+                                                <%= item.shipped_quantity %>/<%= item.quantity %>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } else { %>
+                    <div class="text-center py-4">
+                        <p class="text-muted">No items in this sales order.</p>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <!-- Order Summary -->
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0">Order Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col">Subtotal:</div>
+                    <div class="col text-end">$<%= parseFloat(salesOrder.subtotal || 0).toFixed(2) %></div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col">Tax:</div>
+                    <div class="col text-end">$<%= parseFloat(salesOrder.tax_amount || 0).toFixed(2) %></div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col">Shipping:</div>
+                    <div class="col text-end">$<%= parseFloat(salesOrder.shipping_cost || 0).toFixed(2) %></div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col"><strong>Total:</strong></div>
+                    <div class="col text-end"><strong>$<%= parseFloat(salesOrder.total_amount || 0).toFixed(2) %></strong></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Order Timeline -->
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="card-title mb-0">Order Timeline</h5>
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-success"></div>
+                        <div class="timeline-content">
+                            <h6>Order Created</h6>
+                            <small><%= new Date(salesOrder.created_at).toLocaleString() %></small>
+                        </div>
+                    </div>
+                    <% if (salesOrder.status !== 'Draft') { %>
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-warning"></div>
+                            <div class="timeline-content">
+                                <h6>Order Confirmed</h6>
+                                <small>Status: <%= salesOrder.status %></small>
+                            </div>
+                        </div>
+                    <% } %>
+                    <% if (salesOrder.status === 'Shipped' || salesOrder.status === 'Delivered') { %>
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-info"></div>
+                            <div class="timeline-content">
+                                <h6>Order Shipped</h6>
+                                <small><%= salesOrder.ship_date ? new Date(salesOrder.ship_date).toLocaleString() : 'In transit' %></small>
+                            </div>
+                        </div>
+                    <% } %>
+                    <% if (salesOrder.status === 'Delivered') { %>
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-success"></div>
+                            <div class="timeline-content">
+                                <h6>Order Delivered</h6>
+                                <small><%= salesOrder.delivery_date ? new Date(salesOrder.delivery_date).toLocaleString() : 'Today' %></small>
+                            </div>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Status Update Modal -->
+<% if (salesOrder.status !== 'Delivered' && salesOrder.status !== 'Cancelled') { %>
+<div class="modal fade" id="statusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="/orders/sales/<%= salesOrder.id %>/status">
+                <div class="modal-header">
+                    <h5 class="modal-title">Update Order Status</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="status" class="form-label">New Status</label>
+                        <select name="status" id="status" class="form-select" required>
+                            <option value="Draft" <%= salesOrder.status === 'Draft' ? 'selected' : '' %>>Draft</option>
+                            <option value="Confirmed" <%= salesOrder.status === 'Confirmed' ? 'selected' : '' %>>Confirmed</option>
+                            <option value="Processing" <%= salesOrder.status === 'Processing' ? 'selected' : '' %>>Processing</option>
+                            <option value="Shipped">Shipped</option>
+                            <option value="Delivered">Delivered</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="shipDateDiv" style="display: none;">
+                        <label for="ship_date" class="form-label">Ship Date</label>
+                        <input type="date" name="ship_date" id="ship_date" class="form-control">
+                    </div>
+                    <div class="mb-3" id="deliveryDateDiv" style="display: none;">
+                        <label for="delivery_date" class="form-label">Delivery Date</label>
+                        <input type="date" name="delivery_date" id="delivery_date" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Status</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<% } %>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 2rem;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.timeline-item:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: -1.5rem;
+    top: 1.5rem;
+    width: 2px;
+    height: calc(100% + 1rem);
+    background-color: #dee2e6;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -1.75rem;
+    top: 0.25rem;
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+</style>
+
+<script>
+document.getElementById('status').addEventListener('change', function() {
+    const shipDateDiv = document.getElementById('shipDateDiv');
+    const deliveryDateDiv = document.getElementById('deliveryDateDiv');
+    
+    if (this.value === 'Shipped') {
+        shipDateDiv.style.display = 'block';
+        deliveryDateDiv.style.display = 'none';
+        document.getElementById('ship_date').valueAsDate = new Date();
+    } else if (this.value === 'Delivered') {
+        shipDateDiv.style.display = 'block';
+        deliveryDateDiv.style.display = 'block';
+        document.getElementById('ship_date').valueAsDate = new Date();
+        document.getElementById('delivery_date').valueAsDate = new Date();
+    } else {
+        shipDateDiv.style.display = 'none';
+        deliveryDateDiv.style.display = 'none';
+    }
+});
+</script>
+
+<%- include('../../partials/footer') %>

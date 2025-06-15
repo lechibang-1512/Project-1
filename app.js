@@ -2,7 +2,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const path = require('path');
-const { pool, suppliersPool, testConnection } = require('./database');
+const { pool, suppliersPool, ordersPool, testConnection } = require('./database');
 
 // Load environment variables
 require('dotenv').config();
@@ -32,8 +32,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Main route - Overview page
 app.get('/', async (req, res) => {
+    let conn;
     try {
-        const conn = await pool.getConnection();
+        conn = await pool.getConnection();
         
         // Get list of tables
         const tables = await conn.query(`
@@ -42,8 +43,6 @@ app.get('/', async (req, res) => {
             WHERE TABLE_SCHEMA = ?
             ORDER BY TABLE_NAME;
         `, [process.env.DB_NAME]);
-        
-        conn.release();
         
         res.render('index', {
             title: 'Component Database Viewer',
@@ -55,14 +54,17 @@ app.get('/', async (req, res) => {
             title: 'Error',
             error: err.message
         });
+    } finally {
+        if (conn) conn.release();
     }
 });
 
 // Route for viewing a specific table
 app.get('/table/:tableName', async (req, res) => {
+    let conn;
     try {
         const tableName = req.params.tableName;
-        const conn = await pool.getConnection();
+        conn = await pool.getConnection();
         
         // Get table columns
         const columns = await conn.query(`
@@ -83,8 +85,6 @@ app.get('/table/:tableName', async (req, res) => {
         `);
         const recordCount = countResult[0].count;
         
-        conn.release();
-        
         res.render('table', {
             title: `Table: ${formatTableName(tableName)}`,
             tableName: tableName,
@@ -100,6 +100,8 @@ app.get('/table/:tableName', async (req, res) => {
             title: 'Error',
             error: err.message
         });
+    } finally {
+        if (conn) conn.release();
     }
 });
 
@@ -235,8 +237,9 @@ app.post('/search/:tableName', async (req, res) => {
 
 // Inventory Management Routes
 app.get('/inventory', async (req, res) => {
+    let conn;
     try {
-        const conn = await pool.getConnection();
+        conn = await pool.getConnection();
         
         // Get list of tables with stock_quantity column
         const tables = await conn.query(`
@@ -272,8 +275,6 @@ app.get('/inventory', async (req, res) => {
             });
         }
         
-        conn.release();
-        
         res.render('inventory', {
             title: 'Inventory Management',
             inventoryData: inventoryData,
@@ -286,6 +287,8 @@ app.get('/inventory', async (req, res) => {
             title: 'Error',
             error: err.message
         });
+    } finally {
+        if (conn) conn.release();
     }
 });
 
@@ -772,8 +775,9 @@ app.post('/api/inventory/report', async (req, res) => {
 
 // Suppliers overview page
 app.get('/suppliers', async (req, res) => {
+    let conn;
     try {
-        const conn = await suppliersPool.getConnection();
+        conn = await suppliersPool.getConnection();
         
         // Get suppliers with filtering and search
         const { category, status, search } = req.query;
@@ -820,8 +824,6 @@ app.get('/suppliers', async (req, res) => {
             FROM suppliers
         `);
         
-        conn.release();
-        
         res.render('suppliers/index', {
             title: 'Supplier Management',
             suppliers: suppliers,
@@ -835,6 +837,8 @@ app.get('/suppliers', async (req, res) => {
             title: 'Error',
             error: err.message
         });
+    } finally {
+        if (conn) conn.release();
     }
 });
 
@@ -1038,6 +1042,800 @@ app.get('/api/suppliers/search', async (req, res) => {
 });
 
 // ===== END SUPPLIER MANAGEMENT ROUTES =====
+
+// ===== ORDER MANAGEMENT ROUTES =====
+
+// Helper function to generate unique order numbers
+function generateOrderNumber(type) {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const time = String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0');
+    return `${type}-${year}${month}${day}-${time}`;
+}
+
+// Helper function to get component tables
+async function getComponentTables() {
+    const conn = await pool.getConnection();
+    const tables = await conn.query(`
+        SELECT TABLE_NAME 
+        FROM information_schema.TABLES 
+        WHERE TABLE_SCHEMA = ? AND TABLE_NAME LIKE '%_specs'
+        ORDER BY TABLE_NAME;
+    `, [process.env.DB_NAME]);
+    conn.release();
+    return tables;
+}
+
+// Helper function to get component by table and ID
+async function getComponentById(tableName, id) {
+    const conn = await pool.getConnection();
+    const components = await conn.query(`
+        SELECT * FROM ${conn.escapeId(tableName)} WHERE id = ?
+    `, [id]);
+    conn.release();
+    return components.length > 0 ? components[0] : null;
+}
+
+// Helper function to update inventory stock
+async function updateInventoryStock(tableName, itemId, quantityChange, operation) {
+    const conn = await pool.getConnection();
+    try {
+        if (operation === 'increase') {
+            await conn.query(`
+                UPDATE ${conn.escapeId(tableName)} 
+                SET stock_quantity = COALESCE(stock_quantity, 0) + ? 
+                WHERE id = ?
+            `, [quantityChange, itemId]);
+        } else if (operation === 'decrease') {
+            await conn.query(`
+                UPDATE ${conn.escapeId(tableName)} 
+                SET stock_quantity = GREATEST(0, COALESCE(stock_quantity, 0) - ?) 
+                WHERE id = ?
+            `, [quantityChange, itemId]);
+        }
+    } finally {
+        conn.release();
+    }
+}
+
+// Orders Overview Dashboard
+app.get('/orders', async (req, res) => {
+    let conn;
+    try {
+        conn = await ordersPool.getConnection();
+        
+        // Get order statistics
+        const poStats = await conn.query(`
+            SELECT 
+                COUNT(*) as total,
+                SUM(CASE WHEN status IN ('Draft', 'Ordered') THEN 1 ELSE 0 END) as pending,
+                SUM(CASE WHEN status = 'Received' THEN 1 ELSE 0 END) as completed,
+                SUM(CASE WHEN status = 'Cancelled' THEN 1 ELSE 0 END) as cancelled,
+                COALESCE(SUM(total_amount), 0) as total_value
+            FROM purchase_orders
+        `);
+        
+        const soStats = await conn.query(`
+            SELECT 
+                COUNT(*) as total,
+                SUM(CASE WHEN status IN ('Draft', 'Confirmed', 'Processing') THEN 1 ELSE 0 END) as pending,
+                SUM(CASE WHEN status = 'Delivered' THEN 1 ELSE 0 END) as completed,
+                SUM(CASE WHEN status = 'Cancelled' THEN 1 ELSE 0 END) as cancelled,
+                COALESCE(SUM(total_amount), 0) as total_value
+            FROM sales_orders
+        `);
+        
+        // Get recent orders
+        const recentPOs = await conn.query(`
+            SELECT po.*, s.name as supplier_name
+            FROM purchase_orders po
+            LEFT JOIN suppliers_db.suppliers s ON po.supplier_id = s.id
+            ORDER BY po.created_at DESC
+            LIMIT 5
+        `);
+        
+        const recentSOs = await conn.query(`
+            SELECT so.*, c.name as registered_customer_name
+            FROM sales_orders so
+            LEFT JOIN customers c ON so.customer_id = c.id
+            ORDER BY so.created_at DESC
+            LIMIT 5
+        `);
+        
+        res.render('orders/dashboard', {
+            title: 'Order Management Dashboard',
+            poStats: poStats[0],
+            soStats: soStats[0],
+            recentPOs: recentPOs,
+            recentSOs: recentSOs
+        });
+    } catch (err) {
+        console.error('Error fetching orders dashboard:', err);
+        res.status(500).render('error', {
+            title: 'Error',
+            error: err.message
+        });
+    } finally {
+        if (conn) conn.release();
+    }
+});
+
+// ===== PURCHASE ORDERS =====
+
+// Purchase Orders List
+app.get('/orders/purchase', async (req, res) => {
+    let conn;
+    try {
+        conn = await ordersPool.getConnection();
+        const { status, supplier } = req.query;
+        
+        let query = `
+            SELECT po.*, s.name as supplier_name
+            FROM purchase_orders po
+            LEFT JOIN suppliers_db.suppliers s ON po.supplier_id = s.id
+            WHERE 1=1
+        `;
+        let params = [];
+        
+        if (status && status !== 'all') {
+            query += ' AND po.status = ?';
+            params.push(status);
+        }
+        
+        if (supplier && supplier !== 'all') {
+            query += ' AND po.supplier_id = ?';
+            params.push(supplier);
+        }
+        
+        query += ' ORDER BY po.created_at DESC';
+        
+        const purchaseOrders = await conn.query(query, params);
+        
+        // Get suppliers for filter
+        const suppliers = await conn.query(`
+            SELECT id, name FROM suppliers_db.suppliers WHERE is_active = 1 ORDER BY name
+        `);
+        
+        res.render('orders/purchase/index', {
+            title: 'Purchase Orders',
+            purchaseOrders: purchaseOrders,
+            suppliers: suppliers,
+            currentFilters: { status, supplier }
+        });
+    } catch (err) {
+        console.error('Error fetching purchase orders:', err);
+        res.status(500).render('error', {
+            title: 'Error',
+            error: err.message
+        });
+    } finally {
+        if (conn) conn.release();
+    }
+});
+
+// Create Purchase Order Form
+app.get('/orders/purchase/create', async (req, res) => {
+    let conn, suppliersConn;
+    try {
+        conn = await ordersPool.getConnection();
+        suppliersConn = await suppliersPool.getConnection();
+        
+        // Get active suppliers
+        const suppliers = await suppliersConn.query(`
+            SELECT * FROM suppliers WHERE is_active = 1 ORDER BY name
+        `);
+        
+        // Get component tables
+        const componentTables = await getComponentTables();
+        
+        res.render('orders/purchase/create', {
+            title: 'Create Purchase Order',
+            suppliers: suppliers,
+            componentTables: componentTables,
+            formatTableName: formatTableName
+        });
+    } catch (err) {
+        console.error('Error loading purchase order form:', err);
+        res.status(500).render('error', {
+            title: 'Error',
+            error: err.message
+        });
+    } finally {
+        if (conn) conn.release();
+        if (suppliersConn) suppliersConn.release();
+    }
+});
+
+// Create Purchase Order
+app.post('/orders/purchase/create', async (req, res) => {
+    let conn;
+    try {
+        const { supplier_id, order_date, expected_delivery_date, tax_amount, shipping_cost, notes, items } = req.body;
+        conn = await ordersPool.getConnection();
+        
+        await conn.beginTransaction();
+        
+        // Generate PO number
+        const poNumber = generateOrderNumber('PO');
+        
+        // Create purchase order
+        const result = await conn.query(`
+            INSERT INTO purchase_orders (po_number, supplier_id, order_date, expected_delivery_date, tax_amount, shipping_cost, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `, [poNumber, supplier_id, order_date, expected_delivery_date || null, tax_amount || 0, shipping_cost || 0, notes || '']);
+        
+        const purchaseOrderId = result.insertId;
+        
+        // Add items
+        if (items && items.length > 0) {
+            for (const item of items) {
+                const component = await getComponentById(item.item_table, item.item_id);
+                if (component) {
+                    const totalPrice = parseFloat(item.quantity) * parseFloat(item.unit_price);
+                    await conn.query(`
+                        INSERT INTO purchase_order_items (purchase_order_id, item_table, item_id, item_name, quantity, unit_price, total_price)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    `, [purchaseOrderId, item.item_table, item.item_id, component.model || component.name || 'Unknown', item.quantity, item.unit_price, totalPrice]);
+                }
+            }
+        }
+        
+        await conn.commit();
+        
+        res.redirect(`/orders/purchase/${purchaseOrderId}?success=Purchase order created successfully`);
+    } catch (err) {
+        if (conn) {
+            try {
+                await conn.rollback();
+            } catch (rollbackErr) {
+                console.error('Error rolling back transaction:', rollbackErr);
+            }
+        }
+        console.error('Error creating purchase order:', err);
+        res.status(500).render('error', {
+            title: 'Error',
+            error: err.message
+        });
+    } finally {
+        if (conn) conn.release();
+    }
+});
+
+// View Purchase Order
+app.get('/orders/purchase/:id', async (req, res) => {
+    try {
+        const poId = req.params.id;
+        const conn = await ordersPool.getConnection();
+        
+        // Get purchase order with supplier info
+        const purchaseOrders = await conn.query(`
+            SELECT po.*, s.name as supplier_name, s.email as supplier_email, s.phone as supplier_phone
+            FROM purchase_orders po
+            LEFT JOIN suppliers_db.suppliers s ON po.supplier_id = s.id
+            WHERE po.id = ?
+        `, [poId]);
+        
+        if (purchaseOrders.length === 0) {
+            conn.release();
+            return res.status(404).render('error', {
+                title: 'Purchase Order Not Found',
+                error: 'The requested purchase order could not be found.'
+            });
+        }
+        
+        // Get purchase order items
+        const items = await conn.query(`
+            SELECT * FROM purchase_order_items WHERE purchase_order_id = ? ORDER BY id
+        `, [poId]);
+        
+        conn.release();
+        
+        res.render('orders/purchase/view', {
+            title: `Purchase Order: ${purchaseOrders[0].po_number}`,
+            purchaseOrder: purchaseOrders[0],
+            items: items
+        });
+    } catch (err) {
+        console.error('Error fetching purchase order:', err);
+        res.status(500).render('error', {
+            title: 'Error',
+            error: err.message
+        });
+    }
+});
+
+// Update Purchase Order Status
+app.post('/orders/purchase/:id/status', async (req, res) => {
+    try {
+        const poId = req.params.id;
+        const { status, actual_delivery_date } = req.body;
+        const conn = await ordersPool.getConnection();
+        
+        await conn.beginTransaction();
+        
+        // Update purchase order status
+        await conn.query(`
+            UPDATE purchase_orders 
+            SET status = ?, actual_delivery_date = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        `, [status, actual_delivery_date || null, poId]);
+        
+        // If status is 'Received', update inventory
+        if (status === 'Received') {
+            const items = await conn.query(`
+                SELECT * FROM purchase_order_items WHERE purchase_order_id = ?
+            `, [poId]);
+            
+            for (const item of items) {
+                await updateInventoryStock(item.item_table, item.item_id, item.quantity, 'increase');
+                
+                // Update received quantity
+                await conn.query(`
+                    UPDATE purchase_order_items 
+                    SET received_quantity = quantity 
+                    WHERE id = ?
+                `, [item.id]);
+            }
+        }
+        
+        await conn.commit();
+        conn.release();
+        
+        res.redirect(`/orders/purchase/${poId}?success=Purchase order status updated successfully`);
+    } catch (err) {
+        console.error('Error updating purchase order status:', err);
+        res.status(500).render('error', {
+            title: 'Error',
+            error: err.message
+        });
+    }
+});
+
+// ===== SALES ORDERS =====
+
+// Sales Orders List
+app.get('/orders/sales', async (req, res) => {
+    let conn;
+    try {
+        conn = await ordersPool.getConnection();
+        const { status, customer } = req.query;
+        
+        let query = `
+            SELECT so.*, c.name as registered_customer_name
+            FROM sales_orders so
+            LEFT JOIN customers c ON so.customer_id = c.id
+            WHERE 1=1
+        `;
+        let params = [];
+        
+        if (status && status !== 'all') {
+            query += ' AND so.status = ?';
+            params.push(status);
+        }
+        
+        if (customer && customer !== 'all') {
+            query += ' AND so.customer_id = ?';
+            params.push(customer);
+        }
+        
+        query += ' ORDER BY so.created_at DESC';
+        
+        const salesOrders = await conn.query(query, params);
+        
+        // Get customers for filter
+        const customers = await conn.query(`
+            SELECT id, name FROM customers WHERE is_active = 1 ORDER BY name
+        `);
+        
+        res.render('orders/sales/index', {
+            title: 'Sales Orders',
+            salesOrders: salesOrders,
+            customers: customers,
+            currentFilters: { status, customer }
+        });
+    } catch (err) {
+        console.error('Error fetching sales orders:', err);
+        res.status(500).render('error', {
+            title: 'Error',
+            error: err.message
+        });
+    } finally {
+        if (conn) conn.release();
+    }
+});
+
+// Create Sales Order Form
+app.get('/orders/sales/create', async (req, res) => {
+    let conn;
+    try {
+        conn = await ordersPool.getConnection();
+        
+        // Get active customers
+        const customers = await conn.query(`
+            SELECT * FROM customers WHERE is_active = 1 ORDER BY name
+        `);
+        
+        // Get component tables
+        const componentTables = await getComponentTables();
+        
+        res.render('orders/sales/create', {
+            title: 'Create Sales Order',
+            customers: customers,
+            componentTables: componentTables,
+            formatTableName: formatTableName
+        });
+    } catch (err) {
+        console.error('Error loading sales order form:', err);
+        res.status(500).render('error', {
+            title: 'Error',
+            error: err.message
+        });
+    } finally {
+        if (conn) conn.release();
+    }
+});
+
+// Create Sales Order
+app.post('/orders/sales/create', async (req, res) => {
+    try {
+        const { customer_id, customer_name, customer_email, customer_phone, shipping_address, order_date, tax_amount, shipping_cost, notes, items } = req.body;
+        const conn = await ordersPool.getConnection();
+        
+        await conn.beginTransaction();
+        
+        // Generate SO number
+        const soNumber = generateOrderNumber('SO');
+        
+        // Create sales order
+        const result = await conn.query(`
+            INSERT INTO sales_orders (so_number, customer_id, customer_name, customer_email, customer_phone, shipping_address, order_date, tax_amount, shipping_cost, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [soNumber, customer_id || null, customer_name || '', customer_email || '', customer_phone || '', shipping_address || '', order_date, tax_amount || 0, shipping_cost || 0, notes || '']);
+        
+        const salesOrderId = result.insertId;
+        
+        // Add items
+        if (items && items.length > 0) {
+            for (const item of items) {
+                const component = await getComponentById(item.item_table, item.item_id);
+                if (component) {
+                    const totalPrice = parseFloat(item.quantity) * parseFloat(item.unit_price);
+                    await conn.query(`
+                        INSERT INTO sales_order_items (sales_order_id, item_table, item_id, item_name, quantity, unit_price, total_price)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    `, [salesOrderId, item.item_table, item.item_id, component.model || component.name || 'Unknown', item.quantity, item.unit_price, totalPrice]);
+                }
+            }
+        }
+        
+        await conn.commit();
+        conn.release();
+        
+        res.redirect(`/orders/sales/${salesOrderId}?success=Sales order created successfully`);
+    } catch (err) {
+        console.error('Error creating sales order:', err);
+        res.status(500).render('error', {
+            title: 'Error',
+            error: err.message
+        });
+    }
+});
+
+// View Sales Order
+app.get('/orders/sales/:id', async (req, res) => {
+    try {
+        const soId = req.params.id;
+        const conn = await ordersPool.getConnection();
+        
+        // Get sales order with customer info
+        const salesOrders = await conn.query(`
+            SELECT so.*, c.name as registered_customer_name, c.email as registered_customer_email, c.phone as registered_customer_phone, c.address as registered_customer_address
+            FROM sales_orders so
+            LEFT JOIN customers c ON so.customer_id = c.id
+            WHERE so.id = ?
+        `, [soId]);
+        
+        if (salesOrders.length === 0) {
+            conn.release();
+            return res.status(404).render('error', {
+                title: 'Sales Order Not Found',
+                error: 'The requested sales order could not be found.'
+            });
+        }
+        
+        // Get sales order items
+        const items = await conn.query(`
+            SELECT * FROM sales_order_items WHERE sales_order_id = ? ORDER BY id
+        `, [soId]);
+        
+        conn.release();
+        
+        res.render('orders/sales/view', {
+            title: `Sales Order: ${salesOrders[0].so_number}`,
+            salesOrder: salesOrders[0],
+            items: items
+        });
+    } catch (err) {
+        console.error('Error fetching sales order:', err);
+        res.status(500).render('error', {
+            title: 'Error',
+            error: err.message
+        });
+    }
+});
+
+// Update Sales Order Status
+app.post('/orders/sales/:id/status', async (req, res) => {
+    try {
+        const soId = req.params.id;
+        const { status, ship_date, delivery_date } = req.body;
+        const conn = await ordersPool.getConnection();
+        
+        await conn.beginTransaction();
+        
+        // Update sales order status
+        await conn.query(`
+            UPDATE sales_orders 
+            SET status = ?, ship_date = ?, delivery_date = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        `, [status, ship_date || null, delivery_date || null, soId]);
+        
+        // If status is 'Delivered', update inventory
+        if (status === 'Delivered') {
+            const items = await conn.query(`
+                SELECT * FROM sales_order_items WHERE sales_order_id = ?
+            `, [soId]);
+            
+            for (const item of items) {
+                await updateInventoryStock(item.item_table, item.item_id, item.quantity, 'decrease');
+                
+                // Update shipped quantity
+                await conn.query(`
+                    UPDATE sales_order_items 
+                    SET shipped_quantity = quantity 
+                    WHERE id = ?
+                `, [item.id]);
+            }
+        }
+        
+        await conn.commit();
+        conn.release();
+        
+        res.redirect(`/orders/sales/${soId}?success=Sales order status updated successfully`);
+    } catch (err) {
+        console.error('Error updating sales order status:', err);
+        res.status(500).render('error', {
+            title: 'Error',
+            error: err.message
+        });
+    }
+});
+
+// ===== CUSTOMERS MANAGEMENT =====
+
+// Customers List
+app.get('/orders/customers', async (req, res) => {
+    let conn;
+    try {
+        conn = await ordersPool.getConnection();
+        
+        const customers = await conn.query(`
+            SELECT c.*, 
+                COUNT(so.id) as total_orders,
+                COALESCE(SUM(so.total_amount), 0) as total_spent
+            FROM customers c
+            LEFT JOIN sales_orders so ON c.id = so.customer_id
+            GROUP BY c.id
+            ORDER BY c.name
+        `);
+        
+        res.render('orders/customers/index', {
+            title: 'Customer Management',
+            customers: customers
+        });
+    } catch (err) {
+        console.error('Error fetching customers:', err);
+        res.status(500).render('error', {
+            title: 'Error',
+            error: err.message
+        });
+    } finally {
+        if (conn) conn.release();
+    }
+});
+
+// Add Customer Form
+app.get('/orders/customers/add', (req, res) => {
+    res.render('orders/customers/add', {
+        title: 'Add New Customer'
+    });
+});
+
+// Create Customer
+app.post('/orders/customers/add', async (req, res) => {
+    let conn;
+    try {
+        const { name, email, phone, address, company, notes } = req.body;
+        conn = await ordersPool.getConnection();
+        
+        await conn.query(`
+            INSERT INTO customers (name, email, phone, address, company, notes)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `, [name, email || null, phone || '', address || '', company || '', notes || '']);
+        
+        res.redirect('/orders/customers?success=Customer added successfully');
+    } catch (err) {
+        console.error('Error adding customer:', err);
+        res.status(500).render('error', {
+            title: 'Error',
+            error: err.message
+        });
+    } finally {
+        if (conn) conn.release();
+    }
+});
+
+// View Customer Details
+app.get('/orders/customers/:id', async (req, res) => {
+    let conn;
+    try {
+        const customerId = req.params.id;
+        conn = await ordersPool.getConnection();
+        
+        // Get customer details
+        const customers = await conn.query('SELECT * FROM customers WHERE id = ?', [customerId]);
+        
+        if (customers.length === 0) {
+            return res.status(404).render('error', {
+                title: 'Customer Not Found',
+                error: 'The requested customer could not be found.'
+            });
+        }
+        
+        const customer = customers[0];
+        
+        // Get customer orders
+        const orders = await conn.query(`
+            SELECT * FROM sales_orders 
+            WHERE customer_id = ? 
+            ORDER BY created_at DESC
+        `, [customerId]);
+        
+        // Get customer statistics
+        const stats = await conn.query(`
+            SELECT 
+                COUNT(*) as total_orders,
+                COALESCE(SUM(total_amount), 0) as total_spent,
+                COUNT(CASE WHEN status IN ('Draft', 'Confirmed', 'Processing') THEN 1 END) as pending_orders,
+                COALESCE(AVG(total_amount), 0) as avg_order_value
+            FROM sales_orders 
+            WHERE customer_id = ?
+        `, [customerId]);
+        
+        res.render('orders/customers/view', {
+            title: `Customer: ${customer.name}`,
+            customer: customer,
+            orders: orders,
+            stats: stats[0]
+        });
+    } catch (err) {
+        console.error('Error fetching customer:', err);
+        res.status(500).render('error', {
+            title: 'Error',
+            error: err.message
+        });
+    } finally {
+        if (conn) conn.release();
+    }
+});
+
+// Edit Customer Form
+app.get('/orders/customers/:id/edit', async (req, res) => {
+    let conn;
+    try {
+        const customerId = req.params.id;
+        conn = await ordersPool.getConnection();
+        
+        const customers = await conn.query('SELECT * FROM customers WHERE id = ?', [customerId]);
+        
+        if (customers.length === 0) {
+            return res.status(404).render('error', {
+                title: 'Customer Not Found',
+                error: 'The requested customer could not be found.'
+            });
+        }
+        
+        const customer = customers[0];
+        
+        res.render('orders/customers/edit', {
+            title: `Edit Customer: ${customer.name}`,
+            customer: customer
+        });
+    } catch (err) {
+        console.error('Error fetching customer for edit:', err);
+        res.status(500).render('error', {
+            title: 'Error',
+            error: err.message
+        });
+    } finally {
+        if (conn) conn.release();
+    }
+});
+
+// Update Customer
+app.post('/orders/customers/:id/edit', async (req, res) => {
+    try {
+        const customerId = req.params.id;
+        const { name, email, phone, address, company, notes, is_active } = req.body;
+        const conn = await ordersPool.getConnection();
+        
+        await conn.query(`
+            UPDATE customers SET 
+                name = ?, email = ?, phone = ?, address = ?, 
+                company = ?, notes = ?, is_active = ?
+            WHERE id = ?
+        `, [name, email || null, phone || '', address || '', 
+            company || '', notes || '', is_active ? 1 : 0, customerId]);
+        
+        conn.release();
+        
+        res.redirect(`/orders/customers/${customerId}?success=Customer updated successfully`);
+    } catch (err) {
+        console.error('Error updating customer:', err);
+        res.status(500).render('error', {
+            title: 'Error',
+            error: err.message
+        });
+    }
+});
+
+// Toggle Customer Status
+app.post('/orders/customers/:id/toggle-status', async (req, res) => {
+    try {
+        const customerId = req.params.id;
+        const conn = await ordersPool.getConnection();
+        
+        await conn.query(`
+            UPDATE customers SET is_active = NOT is_active WHERE id = ?
+        `, [customerId]);
+        
+        conn.release();
+        
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Error toggling customer status:', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// API endpoints for dynamic component loading
+app.get('/api/components/:tableName', async (req, res) => {
+    try {
+        const tableName = req.params.tableName;
+        const conn = await pool.getConnection();
+        
+        const components = await conn.query(`
+            SELECT id, 
+                COALESCE(model, name, brand) as name,
+                COALESCE(price, 0) as price,
+                COALESCE(stock_quantity, 0) as stock
+            FROM ${conn.escapeId(tableName)}
+            ORDER BY name
+            LIMIT 50
+        `);
+        
+        conn.release();
+        
+        res.json(components);
+    } catch (err) {
+        console.error('Error fetching components:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ===== END ORDER MANAGEMENT ROUTES =====
 
 // Start the server
 const PORT = process.env.PORT || 3000;
