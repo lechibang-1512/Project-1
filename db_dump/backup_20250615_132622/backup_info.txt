@@ -1,0 +1,28 @@
+Database Backup Information
+===========================
+Backup Date: Sun Jun 15 01:26:22 PM +07 2025
+Timestamp: 20250615_132622
+Host: localhost
+User: lechibang
+
+Databases Backed Up:
+- master_specs_db
+- suppliers_db
+- orders_db
+
+Files Created:
+- master_specs_db_20250615_132622.sql.gz
+- suppliers_db_20250615_132622.sql.gz
+- orders_db_20250615_132622.sql.gz
+- all_databases_20250615_132622.sql.gz
+- backup_info.txt
+
+Restore Instructions:
+====================
+To restore individual database:
+gunzip database_name_timestamp.sql.gz
+mariadb -h localhost -u lechibang -p < database_name_timestamp.sql
+
+To restore all databases:
+gunzip all_databases_20250615_132622.sql.gz
+mariadb -h localhost -u lechibang -p < all_databases_20250615_132622.sql
