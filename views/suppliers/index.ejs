@@ -1,0 +1,217 @@
+<%- include('../partials/header') %>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-truck text-primary"></i> Supplier Management</h1>
+    <a href="/suppliers/add" class="btn btn-success">
+        <i class="fas fa-plus"></i> Add New Supplier
+    </a>
+</div>
+
+<!-- Success/Error Messages -->
+<% if (typeof query !== 'undefined' && query.success) { %>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <%= query.success %>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+<% } %>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4><%= stats.total %></h4>
+                        <span>Total Suppliers</span>
+                    </div>
+                    <i class="fas fa-truck fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4><%= stats.active %></h4>
+                        <span>Active</span>
+                    </div>
+                    <i class="fas fa-check-circle fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4><%= stats.inactive %></h4>
+                        <span>Inactive</span>
+                    </div>
+                    <i class="fas fa-pause-circle fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4><%= stats.categories %></h4>
+                        <span>Categories</span>
+                    </div>
+                    <i class="fas fa-tags fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters and Search -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" action="/suppliers" class="row g-3">
+            <div class="col-md-3">
+                <label for="category" class="form-label">Category</label>
+                <select name="category" id="category" class="form-select">
+                    <option value="all" <%= currentFilters.category === 'all' || !currentFilters.category ? 'selected' : '' %>>All Categories</option>
+                    <% categories.forEach(cat => { %>
+                        <option value="<%= cat.category %>" <%= currentFilters.category === cat.category ? 'selected' : '' %>>
+                            <%= cat.category %>
+                        </option>
+                    <% }); %>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="status" class="form-label">Status</label>
+                <select name="status" id="status" class="form-select">
+                    <option value="all" <%= currentFilters.status === 'all' || !currentFilters.status ? 'selected' : '' %>>All Status</option>
+                    <option value="active" <%= currentFilters.status === 'active' ? 'selected' : '' %>>Active</option>
+                    <option value="inactive" <%= currentFilters.status === 'inactive' ? 'selected' : '' %>>Inactive</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="search" class="form-label">Search</label>
+                <input type="text" name="search" id="search" class="form-control" 
+                       placeholder="Search by name, contact, or email..." 
+                       value="<%= currentFilters.search || '' %>">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Filter
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Suppliers Table -->
+<div class="card">
+    <div class="card-body">
+        <% if (suppliers.length === 0) { %>
+            <div class="text-center py-5">
+                <i class="fas fa-truck fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">No suppliers found</h4>
+                <p class="text-muted">Try adjusting your filters or <a href="/suppliers/add">add a new supplier</a>.</p>
+            </div>
+        <% } else { %>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Contact Person</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% suppliers.forEach(supplier => { %>
+                            <tr>
+                                <td>
+                                    <strong><%= supplier.name %></strong>
+                                    <% if (supplier.website) { %>
+                                        <br><small class="text-muted">
+                                            <a href="<%= supplier.website %>" target="_blank" class="text-decoration-none">
+                                                <i class="fas fa-external-link-alt"></i> Website
+                                            </a>
+                                        </small>
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary"><%= supplier.category %></span>
+                                </td>
+                                <td>
+                                    <%= supplier.contact_person || '-' %>
+                                    <% if (supplier.contact_position) { %>
+                                        <br><small class="text-muted"><%= supplier.contact_position %></small>
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <% if (supplier.email) { %>
+                                        <a href="mailto:<%= supplier.email %>" class="text-decoration-none">
+                                            <%= supplier.email %>
+                                        </a>
+                                    <% } else { %>
+                                        -
+                                    <% } %>
+                                    <% if (supplier.contact_email && supplier.contact_email !== supplier.email) { %>
+                                        <br><small class="text-muted">
+                                            Contact: <a href="mailto:<%= supplier.contact_email %>"><%= supplier.contact_email %></a>
+                                        </small>
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <% if (supplier.phone) { %>
+                                        <a href="tel:<%= supplier.phone %>" class="text-decoration-none">
+                                            <%= supplier.phone %>
+                                        </a>
+                                    <% } else { %>
+                                        -
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <% if (supplier.is_active) { %>
+                                        <span class="badge bg-success">Active</span>
+                                    <% } else { %>
+                                        <span class="badge bg-warning">Inactive</span>
+                                    <% } %>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a href="/suppliers/<%= supplier.id %>" class="btn btn-outline-primary" title="View">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="/suppliers/<%= supplier.id %>/edit" class="btn btn-outline-secondary" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <form method="POST" action="/suppliers/<%= supplier.id %>/toggle-status" class="d-inline">
+                                            <button type="submit" class="btn btn-outline-<%= supplier.is_active ? 'warning' : 'success' %>" 
+                                                    title="<%= supplier.is_active ? 'Deactivate' : 'Activate' %>">
+                                                <i class="fas fa-<%= supplier.is_active ? 'pause' : 'play' %>"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        <% }); %>
+                    </tbody>
+                </table>
+            </div>
+        <% } %>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<%- include('../partials/footer') %>

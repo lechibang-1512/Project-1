@@ -1,0 +1,131 @@
+<%- include('../partials/header') %>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-plus text-success"></i> Add New Supplier</h1>
+    <a href="/suppliers" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Back to Suppliers
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST" action="/suppliers/add">
+            <div class="row">
+                <!-- Basic Information -->
+                <div class="col-md-6">
+                    <h5 class="mb-3 text-primary">Basic Information</h5>
+                    
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Company Name *</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="category" class="form-label">Category *</label>
+                        <select class="form-select" id="category" name="category" required>
+                            <option value="">Select Category</option>
+                            <option value="CPU">CPU</option>
+                            <option value="GPU">GPU</option>
+                            <option value="Motherboard">Motherboard</option>
+                            <option value="Memory">Memory</option>
+                            <option value="Storage">Storage</option>
+                            <option value="PSU">PSU</option>
+                            <option value="Case">Case</option>
+                            <option value="Cooling">Cooling</option>
+                            <option value="Networking">Networking</option>
+                            <option value="Accessories">Accessories</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Company Email</label>
+                        <input type="email" class="form-control" id="email" name="email">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">Phone</label>
+                        <input type="tel" class="form-control" id="phone" name="phone">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="website" class="form-label">Website</label>
+                        <input type="url" class="form-control" id="website" name="website" placeholder="https://">
+                    </div>
+                </div>
+                
+                <!-- Contact Information -->
+                <div class="col-md-6">
+                    <h5 class="mb-3 text-primary">Contact Person</h5>
+                    
+                    <div class="mb-3">
+                        <label for="contact_person" class="form-label">Contact Name</label>
+                        <input type="text" class="form-control" id="contact_person" name="contact_person">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="contact_position" class="form-label">Position/Title</label>
+                        <input type="text" class="form-control" id="contact_position" name="contact_position">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="contact_email" class="form-label">Contact Email</label>
+                        <input type="email" class="form-control" id="contact_email" name="contact_email">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="address" class="form-label">Address</label>
+                        <textarea class="form-control" id="address" name="address" rows="4"></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Notes -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                  placeholder="Additional notes about this supplier..."></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="row">
+                <div class="col-12">
+                    <hr>
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="/suppliers" class="btn btn-secondary">Cancel</a>
+                        <button type="reset" class="btn btn-outline-secondary">Reset</button>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save"></i> Add Supplier
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Auto-populate category-specific suggestions
+document.getElementById('category').addEventListener('change', function() {
+    const category = this.value;
+    const suggestions = {
+        'CPU': ['Intel Corporation', 'AMD'],
+        'GPU': ['NVIDIA Corporation', 'AMD', 'Intel'],
+        'Motherboard': ['ASUS', 'MSI', 'Gigabyte', 'ASRock'],
+        'Memory': ['Corsair', 'G.Skill', 'Kingston', 'Crucial'],
+        'Storage': ['Samsung', 'Western Digital', 'Seagate', 'Intel'],
+        'PSU': ['Corsair', 'Seasonic', 'EVGA', 'Thermaltake'],
+        'Case': ['Fractal Design', 'Corsair', 'NZXT', 'Cooler Master'],
+        'Cooling': ['Noctua', 'Corsair', 'be quiet!', 'Arctic']
+    };
+    
+    // This could be extended to show suggestions in a dropdown
+    console.log('Category selected:', category);
+});
+</script>
+
+<%- include('../partials/footer') %>

@@ -1,0 +1,969 @@
+<%- include('partials/header') %>
+
+<h1 class="mt-4 mb-4"><i class="fas fa-warehouse"></i> <%= title %></h1>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-chart-line"></i> Inventory Overview</h5>
+                <div>
+                    <button type="button" class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#bulkInventoryModal">
+                        <i class="fas fa-boxes"></i> Bulk Inventory Management
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <p class="lead">Welcome to the Inventory Management System</p>
+                <p>Select a component category below to manage stock quantities, or use the <button type="button" class="btn btn-link p-0" data-bs-toggle="modal" data-bs-target="#bulkInventoryModal">Bulk Inventory Management</button> for advanced operations.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <% inventoryData.forEach(item => { %>
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5><%= item.displayName %></h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Total Items
+                            <span class="badge bg-primary rounded-pill"><%= item.summary.total_items %></span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Total Stock
+                            <span class="badge bg-success rounded-pill"><%= item.summary.total_stock %></span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Min Stock
+                            <span class="badge bg-warning text-dark rounded-pill"><%= item.summary.min_stock %></span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Max Stock
+                            <span class="badge bg-info text-dark rounded-pill"><%= item.summary.max_stock %></span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Average Stock
+                            <span class="badge bg-secondary rounded-pill"><%= Math.round(item.summary.avg_stock * 10) / 10 %></span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-footer">
+                    <a href="/inventory/<%= item.tableName %>" class="btn btn-primary btn-sm">
+                        <i class="fas fa-edit"></i> Manage Inventory
+                    </a>
+                    <a href="/table/<%= item.tableName %>" class="btn btn-secondary btn-sm">
+                        <i class="fas fa-table"></i> View Table
+                    </a>
+                </div>
+            </div>
+        </div>
+    <% }); %>
+</div>
+
+<!-- Bulk Inventory Modal -->
+<div class="modal fade" id="bulkInventoryModal" tabindex="-1" aria-labelledby="bulkInventoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="bulkInventoryModalLabel"><i class="fas fa-boxes"></i> Bulk Inventory Management</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Table Selection and Actions -->
+                <div class="row mb-4">
+                    <div class="col-lg-4">
+                        <div class="card h-100">
+                            <div class="card-header bg-secondary text-white">
+                                <h5 class="mb-0">Select Category</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="list-group">
+                                    <a href="#" class="list-group-item list-group-item-action active" id="all-tables-btn" data-table="all">All Categories</a>
+                                    <% tables.forEach(table => { %>
+                                        <a href="#" class="list-group-item list-group-item-action table-selector" data-table="<%= table.TABLE_NAME %>">
+                                            <%= formatTableName(table.TABLE_NAME) %>
+                                        </a>
+                                    <% }); %>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-8">
+                        <div class="card h-100">
+                            <div class="card-header bg-success text-white">
+                                <h5 class="mb-0">Inventory Actions</h5>
+                            </div>
+                            <div class="card-body">
+                                <!-- Actions Tabs -->
+                                <ul class="nav nav-tabs" id="inventoryActionTabs" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active" id="search-tab" data-bs-toggle="tab" data-bs-target="#search" type="button" role="tab" aria-controls="search" aria-selected="true">
+                                            <i class="fas fa-search"></i> Search
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="bulk-tab" data-bs-toggle="tab" data-bs-target="#bulk" type="button" role="tab" aria-controls="bulk" aria-selected="false">
+                                            <i class="fas fa-edit"></i> Bulk Update
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="report-tab" data-bs-toggle="tab" data-bs-target="#report" type="button" role="tab" aria-controls="report" aria-selected="false">
+                                            <i class="fas fa-chart-bar"></i> Reports
+                                        </button>
+                                    </li>
+                                </ul>
+                                
+                                <!-- Tab Content -->
+                                <div class="tab-content p-3 border border-top-0 rounded-bottom" id="inventoryActionTabContent">
+                                    <!-- Search Tab -->
+                                    <div class="tab-pane fade show active" id="search" role="tabpanel" aria-labelledby="search-tab">
+                                        <form id="inventory-search-form">
+                                            <div class="row mb-3">
+                                                <div class="col-md-6">
+                                                    <label for="search-type" class="form-label">Search By</label>
+                                                    <select class="form-select" id="search-type">
+                                                        <option value="low-stock">Low Stock Items</option>
+                                                        <option value="out-of-stock">Out of Stock Items</option>
+                                                        <option value="high-stock">High Stock Items</option>
+                                                        <option value="custom">Custom Stock Range</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-6" id="custom-range" style="display: none;">
+                                                    <div class="row">
+                                                        <div class="col-6">
+                                                            <label for="min-stock" class="form-label">Min</label>
+                                                            <input type="number" class="form-control" id="min-stock" min="0" value="0">
+                                                        </div>
+                                                        <div class="col-6">
+                                                            <label for="max-stock" class="form-label">Max</label>
+                                                            <input type="number" class="form-control" id="max-stock" min="0" value="50">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-search"></i> Search
+                                            </button>
+                                        </form>
+                                    </div>
+                                    
+                                    <!-- Bulk Update Tab -->
+                                    <div class="tab-pane fade" id="bulk" role="tabpanel" aria-labelledby="bulk-tab">
+                                        <form id="bulk-update-form">
+                                            <div class="mb-3">
+                                                <label for="update-action" class="form-label">Action</label>
+                                                <select class="form-select" id="update-action">
+                                                    <option value="increase">Increase Stock</option>
+                                                    <option value="decrease">Decrease Stock</option>
+                                                    <option value="set">Set Stock to Value</option>
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="update-value" class="form-label">Value</label>
+                                                <input type="number" class="form-control" id="update-value" min="0" value="1">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label for="update-filter" class="form-label">Apply To</label>
+                                                <select class="form-select" id="update-filter">
+                                                    <option value="all">All Items</option>
+                                                    <option value="low">Low Stock Items (≤ 5)</option>
+                                                    <option value="zero">Zero Stock Items</option>
+                                                </select>
+                                            </div>
+                                            <button type="submit" class="btn btn-warning">
+                                                <i class="fas fa-save"></i> Apply Changes
+                                            </button>
+                                        </form>
+                                    </div>
+                                    
+                                    <!-- Reports Tab -->
+                                    <div class="tab-pane fade" id="report" role="tabpanel" aria-labelledby="report-tab">
+                                        <div class="mb-3">
+                                            <button id="generate-report" class="btn btn-info">
+                                                <i class="fas fa-file-export"></i> Generate Inventory Report
+                                            </button>
+                                        </div>
+                                        <div class="mb-3" id="stock-alert-settings">
+                                            <label class="form-label">Low Stock Alert Settings</label>
+                                            <div class="input-group mb-2">
+                                                <span class="input-group-text">Low Stock Threshold</span>
+                                                <input type="number" class="form-control" id="low-stock-threshold" value="5">
+                                                <button class="btn btn-outline-primary" type="button" id="save-threshold">
+                                                    <i class="fas fa-save"></i> Save
+                                                </button>
+                                            </div>
+                                            <div class="form-text">Items with stock below this threshold will be highlighted</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Search Results -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header bg-dark text-white">
+                                <h5 class="mb-0"><i class="fas fa-list"></i> Results <span id="results-count" class="badge bg-light text-dark ms-2">0</span></h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-bordered" id="results-table">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="select-all-items">
+                                                        <label class="form-check-label" for="select-all-items"></label>
+                                                    </div>
+                                                </th>
+                                                <th>Table</th>
+                                                <th>ID</th>
+                                                <th>Item</th>
+                                                <th>Stock</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="results-body">
+                                            <tr>
+                                                <td colspan="6" class="text-center">Use the search function to find inventory items</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <div id="selected-actions" class="mt-3" style="display: none;">
+                                    <div class="alert alert-secondary">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span><span id="selected-count">0</span> items selected</span>
+                                            <div class="btn-group" role="group">
+                                                <button type="button" class="btn btn-success btn-sm" id="add-to-selected">
+                                                    <i class="fas fa-plus"></i> Add to Selected
+                                                </button>
+                                                <button type="button" class="btn btn-danger btn-sm" id="subtract-from-selected">
+                                                    <i class="fas fa-minus"></i> Subtract from Selected
+                                                </button>
+                                                <button type="button" class="btn btn-primary btn-sm" id="set-selected">
+                                                    <i class="fas fa-edit"></i> Set Selected
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quantity Modal -->
+<div class="modal fade" id="bulkQuantityModal" tabindex="-1" aria-labelledby="bulkQuantityModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bulkQuantityModalLabel">Update Stock Quantity</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="bulkQuantityForm">
+                    <input type="hidden" id="bulkModalAction" value="">
+                    
+                    <div class="mb-3">
+                        <label for="bulkQuantityInput" class="form-label">Quantity:</label>
+                        <input type="number" class="form-control" id="bulkQuantityInput" min="0" value="1" required>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        This will update <span id="updateCount">0</span> items. This action cannot be undone.
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveBulkQuantity">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Inventory Report Modal -->
+<div class="modal fade" id="reportModal" tabindex="-1" aria-labelledby="reportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="reportModalLabel">Inventory Report</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="report-content">
+                    <!-- Report content will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="download-report">
+                    <i class="fas fa-download"></i> Download CSV
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Variables to store the current selected table and items
+    let currentTable = 'all';
+    let selectedItems = [];
+    
+    // Handle table selection
+    document.querySelectorAll('.table-selector, #all-tables-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Update UI
+            document.querySelectorAll('.table-selector, #all-tables-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            
+            // Store the selected table
+            currentTable = this.dataset.table;
+            
+            // Clear any existing results
+            document.getElementById('results-body').innerHTML = '<tr><td colspan="6" class="text-center">Use the search function to find inventory items</td></tr>';
+            document.getElementById('results-count').textContent = '0';
+            selectedItems = [];
+            updateSelectedUI();
+        });
+    });
+    
+    // Show/hide custom range inputs based on search type
+    document.getElementById('search-type').addEventListener('change', function() {
+        const customRange = document.getElementById('custom-range');
+        customRange.style.display = this.value === 'custom' ? 'block' : 'none';
+    });
+    
+    // Handle the search form submission
+    document.getElementById('inventory-search-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const searchType = document.getElementById('search-type').value;
+        const minStock = document.getElementById('min-stock').value;
+        const maxStock = document.getElementById('max-stock').value;
+        
+        // Prepare the search parameters
+        const searchParams = {
+            table: currentTable,
+            type: searchType,
+            min: minStock,
+            max: maxStock
+        };
+        
+        // Call the API to search for inventory
+        fetch('/api/inventory/search', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(searchParams)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displaySearchResults(data.results);
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(err => {
+            console.error('Error searching inventory:', err);
+            alert('An error occurred while searching. Please try again.');
+        });
+    });
+    
+    // Handle the bulk update form submission
+    document.getElementById('bulk-update-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const action = document.getElementById('update-action').value;
+        const value = document.getElementById('update-value').value;
+        const filter = document.getElementById('update-filter').value;
+        
+        // Confirm the bulk update
+        if (confirm(`Are you sure you want to ${action} stock for all items in ${currentTable === 'all' ? 'all tables' : currentTable}?`)) {
+            // Call the API to perform the bulk update
+            fetch('/api/inventory/bulk-update', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    table: currentTable,
+                    action: action,
+                    value: parseInt(value),
+                    filter: filter
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Updated ${data.updatedCount} items successfully.`);
+                    
+                    // Refresh the search results if any are displayed
+                    if (document.querySelectorAll('#results-body tr').length > 1) {
+                        document.getElementById('inventory-search-form').dispatchEvent(new Event('submit'));
+                    }
+                    
+                    // Refresh the inventory cards when done
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(err => {
+                console.error('Error updating inventory:', err);
+                alert('An error occurred while updating. Please try again.');
+            });
+        }
+    });
+    
+    // Handle the "Select All" checkbox
+    document.getElementById('select-all-items').addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('#results-body input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+            
+            const itemId = checkbox.dataset.id;
+            const tableName = checkbox.dataset.table;
+            const key = `${tableName}-${itemId}`;
+            
+            if (this.checked) {
+                // Add to selectedItems if not already present
+                if (!selectedItems.some(item => item.key === key)) {
+                    selectedItems.push({
+                        key: key,
+                        id: itemId,
+                        table: tableName
+                    });
+                }
+            } else {
+                // Remove from selectedItems
+                selectedItems = selectedItems.filter(item => item.key !== key);
+            }
+        });
+        
+        updateSelectedUI();
+    });
+    
+    // Handle item checkbox changes
+    document.getElementById('results-body').addEventListener('change', function(e) {
+        if (e.target.type === 'checkbox') {
+            const itemId = e.target.dataset.id;
+            const tableName = e.target.dataset.table;
+            const key = `${tableName}-${itemId}`;
+            
+            if (e.target.checked) {
+                // Add to selectedItems if not already present
+                if (!selectedItems.some(item => item.key === key)) {
+                    selectedItems.push({
+                        key: key,
+                        id: itemId,
+                        table: tableName
+                    });
+                }
+            } else {
+                // Remove from selectedItems
+                selectedItems = selectedItems.filter(item => item.key !== key);
+            }
+            
+            updateSelectedUI();
+        }
+    });
+    
+    // Handle selected items actions
+    document.getElementById('add-to-selected').addEventListener('click', function() {
+        if (selectedItems.length === 0) return;
+        
+        document.getElementById('bulkModalAction').value = 'add';
+        document.getElementById('bulkQuantityModalLabel').textContent = 'Add Stock Quantity';
+        document.getElementById('updateCount').textContent = selectedItems.length;
+        
+        const modal = new bootstrap.Modal(document.getElementById('bulkQuantityModal'));
+        modal.show();
+    });
+    
+    document.getElementById('subtract-from-selected').addEventListener('click', function() {
+        if (selectedItems.length === 0) return;
+        
+        document.getElementById('bulkModalAction').value = 'subtract';
+        document.getElementById('bulkQuantityModalLabel').textContent = 'Subtract Stock Quantity';
+        document.getElementById('updateCount').textContent = selectedItems.length;
+        
+        const modal = new bootstrap.Modal(document.getElementById('bulkQuantityModal'));
+        modal.show();
+    });
+    
+    document.getElementById('set-selected').addEventListener('click', function() {
+        if (selectedItems.length === 0) return;
+        
+        document.getElementById('bulkModalAction').value = 'set';
+        document.getElementById('bulkQuantityModalLabel').textContent = 'Set Stock Quantity';
+        document.getElementById('updateCount').textContent = selectedItems.length;
+        
+        const modal = new bootstrap.Modal(document.getElementById('bulkQuantityModal'));
+        modal.show();
+    });
+    
+    // Save bulk quantity changes
+    document.getElementById('saveBulkQuantity').addEventListener('click', function() {
+        const action = document.getElementById('bulkModalAction').value;
+        const quantity = parseInt(document.getElementById('bulkQuantityInput').value);
+        
+        if (isNaN(quantity) || quantity < 0) {
+            alert('Please enter a valid quantity');
+            return;
+        }
+        
+        // Call the API to update the selected items
+        fetch('/api/inventory/update-selected', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                items: selectedItems,
+                action: action,
+                quantity: quantity
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Updated ${data.updatedCount} items successfully.`);
+                
+                // Close the modal
+                bootstrap.Modal.getInstance(document.getElementById('bulkQuantityModal')).hide();
+                
+                // Refresh the search results
+                document.getElementById('inventory-search-form').dispatchEvent(new Event('submit'));
+                
+                // Clear selected items
+                selectedItems = [];
+                updateSelectedUI();
+                
+                // Refresh the inventory cards when done
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(err => {
+            console.error('Error updating inventory:', err);
+            alert('An error occurred while updating. Please try again.');
+        });
+    });
+    
+    // Handle report generation
+    document.getElementById('generate-report').addEventListener('click', function() {
+        // Call the API to generate a report
+        fetch('/api/inventory/report', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                table: currentTable,
+                lowStockThreshold: parseInt(document.getElementById('low-stock-threshold').value || 5)
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                renderReport(data.report);
+                const modal = new bootstrap.Modal(document.getElementById('reportModal'));
+                modal.show();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(err => {
+            console.error('Error generating report:', err);
+            alert('An error occurred while generating the report. Please try again.');
+        });
+    });
+    
+    // Handle saving low stock threshold
+    document.getElementById('save-threshold').addEventListener('click', function() {
+        const threshold = parseInt(document.getElementById('low-stock-threshold').value);
+        if (isNaN(threshold) || threshold < 0) {
+            alert('Please enter a valid threshold');
+            return;
+        }
+        
+        localStorage.setItem('lowStockThreshold', threshold);
+        alert('Low stock threshold saved successfully');
+    });
+    
+    // Handle report download
+    document.getElementById('download-report').addEventListener('click', function() {
+        // Get report data from the DOM
+        const tables = document.querySelectorAll('#report-content table');
+        let csvContent = '';
+        
+        tables.forEach(table => {
+            const caption = table.querySelector('caption');
+            if (caption) {
+                csvContent += `"${caption.textContent}"\n`;
+            }
+            
+            // Get headers
+            const headers = Array.from(table.querySelectorAll('thead th'))
+                .map(th => `"${th.textContent}"`)
+                .join(',');
+            csvContent += headers + '\n';
+            
+            // Get rows
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                const cells = Array.from(row.querySelectorAll('td'))
+                    .map(td => `"${td.textContent}"`)
+                    .join(',');
+                csvContent += cells + '\n';
+            });
+            
+            csvContent += '\n';
+        });
+        
+        // Trigger download
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `inventory_report_${new Date().toISOString().slice(0,10)}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    });
+    
+    // Function to display search results
+    function displaySearchResults(results) {
+        const resultsBody = document.getElementById('results-body');
+        resultsBody.innerHTML = '';
+        
+        if (results.length === 0) {
+            resultsBody.innerHTML = '<tr><td colspan="6" class="text-center">No results found</td></tr>';
+            document.getElementById('results-count').textContent = '0';
+            return;
+        }
+        
+        results.forEach(item => {
+            const row = document.createElement('tr');
+            
+            // Create checkbox cell
+            const checkboxCell = document.createElement('td');
+            const checkboxDiv = document.createElement('div');
+            checkboxDiv.className = 'form-check';
+            
+            const checkbox = document.createElement('input');
+            checkbox.className = 'form-check-input';
+            checkbox.type = 'checkbox';
+            checkbox.dataset.id = item.id;
+            checkbox.dataset.table = item.tableName;
+            
+            // Check if this item is already selected
+            const key = `${item.tableName}-${item.id}`;
+            if (selectedItems.some(selected => selected.key === key)) {
+                checkbox.checked = true;
+            }
+            
+            checkboxDiv.appendChild(checkbox);
+            checkboxCell.appendChild(checkboxDiv);
+            row.appendChild(checkboxCell);
+            
+            // Create other cells
+            const tableCell = document.createElement('td');
+            tableCell.textContent = formatTableName(item.tableName);
+            row.appendChild(tableCell);
+            
+            const idCell = document.createElement('td');
+            idCell.textContent = item.id;
+            row.appendChild(idCell);
+            
+            const nameCell = document.createElement('td');
+            nameCell.textContent = getItemName(item);
+            row.appendChild(nameCell);
+            
+            const stockCell = document.createElement('td');
+            const stockSpan = document.createElement('span');
+            stockSpan.className = item.stock_quantity <= 5 ? 'text-danger' : 
+                                  item.stock_quantity <= 15 ? 'text-warning' : 'text-success';
+            stockSpan.textContent = item.stock_quantity !== null ? item.stock_quantity : '0';
+            stockCell.appendChild(stockSpan);
+            row.appendChild(stockCell);
+            
+            const actionsCell = document.createElement('td');
+            const btnGroup = document.createElement('div');
+            btnGroup.className = 'btn-group';
+            btnGroup.role = 'group';
+            
+            // Add button
+            const addBtn = document.createElement('button');
+            addBtn.type = 'button';
+            addBtn.className = 'btn btn-success btn-sm';
+            addBtn.title = 'Add Stock';
+            addBtn.innerHTML = '<i class="fas fa-plus"></i>';
+            addBtn.addEventListener('click', () => updateSingleItem(item.tableName, item.id, 'add'));
+            btnGroup.appendChild(addBtn);
+            
+            // Subtract button
+            const subBtn = document.createElement('button');
+            subBtn.type = 'button';
+            subBtn.className = 'btn btn-warning btn-sm';
+            subBtn.title = 'Subtract Stock';
+            subBtn.innerHTML = '<i class="fas fa-minus"></i>';
+            subBtn.addEventListener('click', () => updateSingleItem(item.tableName, item.id, 'subtract'));
+            btnGroup.appendChild(subBtn);
+            
+            // Set button
+            const setBtn = document.createElement('button');
+            setBtn.type = 'button';
+            setBtn.className = 'btn btn-primary btn-sm';
+            setBtn.title = 'Set Stock';
+            setBtn.innerHTML = '<i class="fas fa-edit"></i>';
+            setBtn.addEventListener('click', () => updateSingleItem(item.tableName, item.id, 'set'));
+            btnGroup.appendChild(setBtn);
+            
+            actionsCell.appendChild(btnGroup);
+            row.appendChild(actionsCell);
+            
+            resultsBody.appendChild(row);
+        });
+        
+        document.getElementById('results-count').textContent = results.length;
+    }
+    
+    // Function to update a single inventory item
+    function updateSingleItem(tableName, itemId, action) {
+        // Prompt for quantity
+        const quantity = prompt(`Enter quantity to ${action}:`, '1');
+        if (quantity === null || quantity.trim() === '' || isNaN(parseInt(quantity)) || parseInt(quantity) < 0) {
+            return;
+        }
+        
+        // Call the API to update the item
+        fetch('/api/inventory/update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                tableName: tableName,
+                id: itemId,
+                action: action,
+                quantity: parseInt(quantity)
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update the UI
+                const stockCell = document.querySelector(`#results-body tr td input[data-id="${itemId}"][data-table="${tableName}"]`)
+                    ?.closest('tr')
+                    ?.querySelector('.text-danger, .text-warning, .text-success');
+                
+                if (stockCell) {
+                    stockCell.textContent = data.newQuantity;
+                    stockCell.className = data.newQuantity <= 5 ? 'text-danger' : 
+                                         data.newQuantity <= 15 ? 'text-warning' : 'text-success';
+                }
+                
+                alert('Inventory updated successfully');
+                
+                // Refresh the inventory cards when done
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(err => {
+            console.error('Error updating inventory:', err);
+            alert('An error occurred while updating. Please try again.');
+        });
+    }
+    
+    // Function to update the selected items UI
+    function updateSelectedUI() {
+        const selectedCount = document.getElementById('selected-count');
+        const selectedActions = document.getElementById('selected-actions');
+        
+        if (selectedItems.length > 0) {
+            selectedCount.textContent = selectedItems.length;
+            selectedActions.style.display = 'block';
+        } else {
+            selectedActions.style.display = 'none';
+        }
+    }
+    
+    // Function to render inventory report
+    function renderReport(report) {
+        const reportContent = document.getElementById('report-content');
+        reportContent.innerHTML = '';
+        
+        // Overall summary
+        const summaryDiv = document.createElement('div');
+        summaryDiv.className = 'mb-4';
+        
+        const summaryTitle = document.createElement('h4');
+        summaryTitle.textContent = 'Inventory Summary';
+        summaryDiv.appendChild(summaryTitle);
+        
+        const summaryTable = document.createElement('table');
+        summaryTable.className = 'table table-bordered table-striped';
+        
+        const summaryHead = document.createElement('thead');
+        summaryHead.innerHTML = `
+            <tr>
+                <th>Category</th>
+                <th>Total Items</th>
+                <th>Total Stock</th>
+                <th>Low Stock Items</th>
+                <th>Out of Stock Items</th>
+                <th>Average Stock</th>
+            </tr>
+        `;
+        summaryTable.appendChild(summaryHead);
+        
+        const summaryBody = document.createElement('tbody');
+        
+        report.summary.forEach(item => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${formatTableName(item.tableName)}</td>
+                <td>${item.totalItems}</td>
+                <td>${item.totalStock}</td>
+                <td>${item.lowStockItems}</td>
+                <td>${item.outOfStockItems}</td>
+                <td>${item.averageStock.toFixed(1)}</td>
+            `;
+            summaryBody.appendChild(row);
+        });
+        
+        summaryTable.appendChild(summaryBody);
+        summaryDiv.appendChild(summaryTable);
+        reportContent.appendChild(summaryDiv);
+        
+        // Low stock details
+        if (report.lowStockItems.length > 0) {
+            const lowStockDiv = document.createElement('div');
+            lowStockDiv.className = 'mb-4';
+            
+            const lowStockTitle = document.createElement('h4');
+            lowStockTitle.textContent = 'Low Stock Items';
+            lowStockTitle.className = 'text-danger';
+            lowStockDiv.appendChild(lowStockTitle);
+            
+            const lowStockTable = document.createElement('table');
+            lowStockTable.className = 'table table-bordered table-striped';
+            
+            const lowStockCaption = document.createElement('caption');
+            lowStockCaption.textContent = `Low Stock Items (Threshold: ${report.lowStockThreshold})`;
+            lowStockTable.appendChild(lowStockCaption);
+            
+            const lowStockHead = document.createElement('thead');
+            lowStockHead.innerHTML = `
+                <tr>
+                    <th>Category</th>
+                    <th>ID</th>
+                    <th>Item</th>
+                    <th>Stock</th>
+                </tr>
+            `;
+            lowStockTable.appendChild(lowStockHead);
+            
+            const lowStockBody = document.createElement('tbody');
+            
+            report.lowStockItems.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${formatTableName(item.tableName)}</td>
+                    <td>${item.id}</td>
+                    <td>${getItemName(item)}</td>
+                    <td class="text-danger">${item.stock_quantity}</td>
+                `;
+                lowStockBody.appendChild(row);
+            });
+            
+            lowStockTable.appendChild(lowStockBody);
+            lowStockDiv.appendChild(lowStockTable);
+            reportContent.appendChild(lowStockDiv);
+        }
+    }
+    
+    // Helper function to get item name
+    function getItemName(item) {
+        if (item.manufacturer && item.model) {
+            return `${item.manufacturer} ${item.model}`;
+        } else if (item.manufacturer && item.series) {
+            return `${item.manufacturer} ${item.series}`;
+        } else if (item.model) {
+            return item.model;
+        } else if (item.series) {
+            return item.series;
+        } else {
+            return `Item #${item.id}`;
+        }
+    }
+    
+    // Helper function to format table names
+    function formatTableName(tableName) {
+        return tableName
+            .replace('_specs', '')
+            .replace(/_/g, ' ')
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(' ');
+    }
+    
+    // Set the low stock threshold from localStorage if available
+    if (localStorage.getItem('lowStockThreshold')) {
+        document.getElementById('low-stock-threshold').value = localStorage.getItem('lowStockThreshold');
+    }
+    
+    // Initialize modals when the bulk inventory modal is shown
+    document.getElementById('bulkInventoryModal').addEventListener('shown.bs.modal', function() {
+        // Reset the form
+        document.getElementById('inventory-search-form').reset();
+        document.getElementById('bulk-update-form').reset();
+        
+        // Clear any search results
+        document.getElementById('results-body').innerHTML = '<tr><td colspan="6" class="text-center">Use the search function to find inventory items</td></tr>';
+        document.getElementById('results-count').textContent = '0';
+        
+        // Reset selected items
+        selectedItems = [];
+        updateSelectedUI();
+        
+        // Set default tab
+        const searchTab = document.getElementById('search-tab');
+        const tab = new bootstrap.Tab(searchTab);
+        tab.show();
+    });
+});
+</script>
+
+<%- include('partials/footer') %>
