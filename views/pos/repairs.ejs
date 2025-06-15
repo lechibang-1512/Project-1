@@ -156,8 +156,8 @@
                                     <% } %>
                                 </td>
                                 <td>
-                                    <%= repair.customer_name %><br>
-                                    <small class="text-muted"><%= repair.customer_phone %></small>
+                                    <%= repair.registered_customer_name || repair.customer_name %><br>
+                                    <small class="text-muted"><%= repair.registered_customer_phone || repair.customer_phone %></small>
                                 </td>
                                 <td>
                                     <strong><%= repair.device_brand %> <%= repair.device_model %></strong>

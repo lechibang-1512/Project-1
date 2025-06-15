@@ -150,8 +150,8 @@
                                     <strong><%= tradeIn.trade_in_number %></strong>
                                 </td>
                                 <td>
-                                    <%= tradeIn.customer_name %><br>
-                                    <small class="text-muted"><%= tradeIn.customer_phone %></small>
+                                    <%= tradeIn.registered_customer_name || tradeIn.customer_name %><br>
+                                    <small class="text-muted"><%= tradeIn.registered_customer_phone || tradeIn.customer_phone %></small>
                                 </td>
                                 <td>
                                     <strong><%= tradeIn.device_brand %> <%= tradeIn.device_model %></strong><br>

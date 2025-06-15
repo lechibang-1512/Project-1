@@ -1913,7 +1913,7 @@ app.get('/pos/trade-ins', async (req, res) => {
         const { status, condition, brand } = req.query;
         
         let query = `
-            SELECT t.*, c.name as customer_name, c.phone as customer_phone 
+            SELECT t.*, c.name as registered_customer_name, c.phone as registered_customer_phone 
             FROM trade_ins t
             LEFT JOIN orders_db.customers c ON t.customer_id = c.id
             WHERE 1=1
@@ -1976,7 +1976,7 @@ app.get('/pos/repairs', async (req, res) => {
         const { status, priority, technician } = req.query;
         
         let query = `
-            SELECT r.*, c.name as customer_name, c.phone as customer_phone,
+            SELECT r.*, c.name as registered_customer_name, c.phone as registered_customer_phone,
                    GROUP_CONCAT(DISTINCT p.part_name) as parts_used
             FROM repair_services r
             LEFT JOIN orders_db.customers c ON r.customer_id = c.id
@@ -2048,23 +2048,23 @@ app.get('/pos/used-inventory', async (req, res) => {
         let params = [];
         
         if (brand && brand !== 'all') {
-            query += ' AND device_brand = ?';
+            query += ' AND brand = ?';
             params.push(brand);
         }
         
         if (condition && condition !== 'all') {
-            query += ' AND device_condition = ?';
+            query += ' AND cosmetic_condition = ?';
             params.push(condition);
         }
         
         if (stock === 'in_stock') {
-            query += ' AND stock_quantity > 0';
+            query += ' AND status = "in_stock"';
         } else if (stock === 'sold') {
-            query += ' AND stock_quantity = 0';
+            query += ' AND status = "sold"';
         }
         
         if (search) {
-            query += ' AND (device_brand LIKE ? OR device_model LIKE ?)';
+            query += ' AND (brand LIKE ? OR model LIKE ?)';
             params.push(`%${search}%`, `%${search}%`);
         }
         
@@ -2076,9 +2076,9 @@ app.get('/pos/used-inventory', async (req, res) => {
         const stats = await conn.query(`
             SELECT 
                 COUNT(*) as total_devices,
-                COUNT(CASE WHEN stock_quantity > 0 THEN 1 END) as in_stock,
-                COUNT(CASE WHEN stock_quantity = 0 THEN 1 END) as sold,
-                COALESCE(SUM(CASE WHEN stock_quantity > 0 THEN selling_price * stock_quantity ELSE 0 END), 0) as total_value
+                COUNT(CASE WHEN status = 'in_stock' THEN 1 END) as in_stock,
+                COUNT(CASE WHEN status = 'sold' THEN 1 END) as sold,
+                COALESCE(SUM(CASE WHEN status = 'in_stock' THEN selling_price ELSE 0 END), 0) as total_value
             FROM used_inventory
         `);
         
@@ -2171,11 +2171,11 @@ app.post('/api/pos/trade-ins/create', async (req, res) => {
             INSERT INTO trade_ins (
                 customer_id, customer_name, customer_phone, customer_email,
                 device_brand, device_model, device_condition, device_storage,
-                original_price, offered_amount, notes, has_charger, has_box, status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+                estimated_value, notes, original_accessories, original_box, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending_evaluation')
         `, [customer_id || null, customer_name, customer_phone, customer_email || '',
             device_brand, device_model, device_condition, device_storage || '',
-            original_price || 0, offered_amount || 0, notes || '',
+            offered_amount || 0, notes || '',
             has_charger ? 1 : 0, has_box ? 1 : 0]);
         
         conn.release();
@@ -2215,14 +2215,14 @@ app.post('/api/pos/repairs/create', async (req, res) => {
         const result = await conn.query(`
             INSERT INTO repair_services (
                 repair_number, customer_id, customer_name, customer_phone, customer_email,
-                device_brand, device_model, device_imei, issue_description, repair_type,
-                priority, estimated_cost, assigned_technician, warranty_status,
-                estimated_completion, notes, backup_data, customer_notified, status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'received')
+                device_brand, device_model, imei_number, reported_issues, repair_type,
+                priority, estimated_cost, technician_assigned, estimated_completion, 
+                customer_notes, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'received')
         `, [repairNumber, customer_id || null, customer_name, customer_phone, customer_email || '',
             device_brand, device_model, device_imei || '', issue_description, repair_type,
-            priority, estimated_cost || 0, assigned_technician || '', warranty_status || 'out_of_warranty',
-            estimated_completion || null, notes || '', backup_data ? 1 : 0, customer_notified ? 1 : 0]);
+            priority, estimated_cost || 0, assigned_technician || '', 
+            estimated_completion || null, notes || '']);
         
         const repairId = result.insertId;
         
@@ -2271,9 +2271,9 @@ app.post('/api/pos/used-inventory/:id/update', async (req, res) => {
         
         await conn.query(`
             UPDATE used_inventory 
-            SET selling_price = ?, stock_quantity = ?, device_condition = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+            SET selling_price = ?, cosmetic_condition = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
-        `, [selling_price, stock_quantity, device_condition, notes || '', deviceId]);
+        `, [selling_price, device_condition, notes || '', deviceId]);
         
         conn.release();
         
@@ -2300,16 +2300,15 @@ app.post('/api/pos/used-inventory/:id/sell', async (req, res) => {
         
         conn = await ordersPool.getConnection();
         
-        // Update stock quantity
+        // Update status to sold
         await conn.query(`
             UPDATE used_inventory 
-            SET stock_quantity = GREATEST(0, stock_quantity - ?), 
-                actual_selling_price = ?, 
-                sale_notes = ?, 
+            SET status = 'sold', 
+                notes = ?, 
                 sold_at = CURRENT_TIMESTAMP,
                 updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
-        `, [quantity, sold_price, notes || '', deviceId]);
+        `, [notes || '', deviceId]);
         
         conn.release();
         
@@ -2425,12 +2424,12 @@ app.get('/api/pos/used-inventory', async (req, res) => {
         
         const usedPhones = await conn.query(`
             SELECT id, 
-                   CONCAT(device_brand, ' ', device_model, ' (', device_condition, ')') as name,
+                   CONCAT(brand, ' ', model, ' (', cosmetic_condition, ')') as name,
                    selling_price as price,
-                   stock_quantity as stock
+                   CASE WHEN status = 'in_stock' THEN 1 ELSE 0 END as stock
             FROM used_inventory 
-            WHERE stock_quantity > 0 
-            ORDER BY device_brand, device_model
+            WHERE status = 'in_stock' 
+            ORDER BY brand, model
             LIMIT 100
         `);
         
@@ -2459,7 +2458,7 @@ app.post('/api/pos/trade-ins/:id/status', async (req, res) => {
         // Update trade-in status
         await conn.query(`
             UPDATE trade_ins 
-            SET status = ?, offered_amount = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+            SET status = ?, final_value = ?, evaluation_notes = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         `, [status, offered_amount || 0, notes || '', tradeInId]);
         
@@ -2473,11 +2472,12 @@ app.post('/api/pos/trade-ins/:id/status', async (req, res) => {
                 const trade = tradeIn[0];
                 await conn.query(`
                     INSERT INTO used_inventory (
-                        device_brand, device_model, device_condition, 
-                        purchase_price, selling_price, stock_quantity, source
-                    ) VALUES (?, ?, ?, ?, ?, 1, 'trade_in')
-                `, [trade.device_brand, trade.device_model, trade.device_condition,
-                    trade.offered_amount, trade.offered_amount * 1.3, // 30% markup
+                        trade_in_id, brand, model, cosmetic_condition, 
+                        purchase_price, selling_price, status, item_code
+                    ) VALUES (?, ?, ?, ?, ?, ?, 'in_stock', ?)
+                `, [trade.id, trade.device_brand, trade.device_model, trade.device_condition,
+                    trade.final_value, trade.final_value * 1.3, // 30% markup
+                    `TI-${trade.id}-${Date.now()}`
                 ]);
             }
         }
@@ -2520,7 +2520,7 @@ app.post('/api/pos/repairs/:id/status', async (req, res) => {
         // Update repair service
         await conn.query(`
             UPDATE repair_services 
-            SET status = ?, assigned_technician = ?, estimated_completion = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+            SET status = ?, technician_assigned = ?, estimated_completion = ?, internal_notes = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
         `, [status, assigned_technician || '', estimated_completion || null, notes || '', repairId]);
         

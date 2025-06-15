@@ -148,23 +148,23 @@
                             const purchasePrice = parseFloat(item.purchase_price || 0);
                             const sellingPrice = parseFloat(item.selling_price || 0);
                             const profitMargin = purchasePrice > 0 ? ((sellingPrice - purchasePrice) / purchasePrice * 100) : 0;
-                            const stockStatus = item.stock_quantity > 0 ? 'success' : 'danger';
+                            const stockStatus = item.status === 'in_stock' ? 'success' : 'danger';
                             const conditionColor = {
                                 'Excellent': 'success',
                                 'Good': 'primary',
                                 'Fair': 'warning',
                                 'Poor': 'danger'
-                            }[item.device_condition] || 'secondary';
+                            }[item.cosmetic_condition] || 'secondary';
                         %>
                             <tr>
                                 <td>
-                                    <strong><%= item.device_brand %> <%= item.device_model %></strong>
-                                    <% if (item.device_storage) { %>
-                                        <br><small class="text-muted"><%= item.device_storage %></small>
+                                    <strong><%= item.brand %> <%= item.model %></strong>
+                                    <% if (item.storage) { %>
+                                        <br><small class="text-muted"><%= item.storage %></small>
                                     <% } %>
                                 </td>
                                 <td>
-                                    <span class="badge bg-<%= conditionColor %>"><%= item.device_condition %></span>
+                                    <span class="badge bg-<%= conditionColor %>"><%= item.cosmetic_condition %></span>
                                 </td>
                                 <td>$<%= purchasePrice.toFixed(2) %></td>
                                 <td>
@@ -177,7 +177,7 @@
                                 </td>
                                 <td>
                                     <span class="badge bg-<%= stockStatus %>">
-                                        <%= item.stock_quantity > 0 ? 'In Stock (' + item.stock_quantity + ')' : 'Sold' %>
+                                        <%= item.status === 'in_stock' ? 'In Stock' : 'Sold' %>
                                     </span>
                                 </td>
                                 <td>
@@ -192,7 +192,7 @@
                                                 onclick="editDevice(<%= item.id %>)">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <% if (item.stock_quantity > 0) { %>
+                                        <% if (item.status === 'in_stock') { %>
                                             <button type="button" class="btn btn-outline-success" 
                                                     onclick="markAsSold(<%= item.id %>)">
                                                 <i class="fas fa-shopping-cart"></i>
@@ -236,8 +236,11 @@
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="editStockQuantity" class="form-label">Stock Quantity</label>
-                                <input type="number" id="editStockQuantity" class="form-control" min="0" required>
+                                <label for="editStatus" class="form-label">Stock Status</label>
+                                <select id="editStatus" class="form-select" required>
+                                    <option value="in_stock">In Stock</option>
+                                    <option value="sold">Sold</option>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -275,10 +278,6 @@
             <div class="modal-body">
                 <form id="soldForm">
                     <input type="hidden" id="soldDeviceId">
-                    <div class="mb-3">
-                        <label for="soldQuantity" class="form-label">Quantity Sold</label>
-                        <input type="number" id="soldQuantity" class="form-control" min="1" value="1" required>
-                    </div>
                     <div class="mb-3">
                         <label for="soldPrice" class="form-label">Actual Selling Price</label>
                         <div class="input-group">
@@ -331,8 +330,8 @@ function saveDeviceChanges() {
     const deviceId = document.getElementById('editDeviceId').value;
     const data = {
         selling_price: document.getElementById('editSellingPrice').value,
-        stock_quantity: document.getElementById('editStockQuantity').value,
-        device_condition: document.getElementById('editCondition').value,
+        status: document.getElementById('editStatus').value,
+        cosmetic_condition: document.getElementById('editCondition').value,
         notes: document.getElementById('editNotes').value
     };
     
@@ -361,7 +360,6 @@ function saveDeviceChanges() {
 function confirmSale() {
     const deviceId = document.getElementById('soldDeviceId').value;
     const data = {
-        quantity: document.getElementById('soldQuantity').value,
         sold_price: document.getElementById('soldPrice').value,
         notes: document.getElementById('soldNotes').value
     };
