@@ -1,0 +1,261 @@
+erDiagram
+    %% Master Specs Database Tables
+    CPU_SPECS {
+        int id PK
+        string model
+        string manufacturer
+        string series
+        string socket
+        int cores
+        int threads
+        float base_clock
+        float boost_clock
+        string cache
+        int tdp
+        string integrated_graphics
+        decimal price
+        int quantity
+    }
+    
+    MOTHERBOARD_SPECS {
+        int id PK
+        string model
+        string manufacturer
+        string chipset
+        string socket
+        string form_factor
+        string memory_type
+        int memory_slots
+        int max_memory
+        string expansion_slots
+        string connectivity
+        decimal price
+        int quantity
+    }
+    
+    RAM_SPECS {
+        int id PK
+        string model
+        string manufacturer
+        string type
+        int capacity
+        int speed
+        string timing
+        string form_factor
+        string voltage
+        decimal price
+        int quantity
+    }
+    
+    SSD_SPECS {
+        int id PK
+        string model
+        string manufacturer
+        int capacity
+        string interface
+        string form_factor
+        int read_speed
+        int write_speed
+        string nand_type
+        decimal price
+        int quantity
+    }
+    
+    PSU_SPECS {
+        int id PK
+        string model
+        string manufacturer
+        int wattage
+        string efficiency
+        string modular
+        string form_factor
+        string connectors
+        decimal price
+        int quantity
+    }
+    
+    CASE_SPECS {
+        int id PK
+        string model
+        string manufacturer
+        string form_factor
+        string size
+        string material
+        string cooling_support
+        string expansion_slots
+        decimal price
+        int quantity
+    }
+    
+    PHONE_SPECS {
+        int id PK
+        string model
+        string manufacturer
+        string os
+        string display
+        string processor
+        string memory
+        string storage
+        string camera
+        decimal price
+        int quantity
+    }
+    
+    %% Orders Database Tables
+    CUSTOMERS {
+        int id PK
+        string name
+        string email
+        string phone
+        string address
+        datetime created_at
+        datetime updated_at
+    }
+    
+    POS_TRANSACTIONS {
+        int id PK
+        int customer_id FK
+        string transaction_type
+        decimal subtotal
+        decimal tax_amount
+        decimal discount_amount
+        decimal total_amount
+        string payment_method
+        string status
+        text notes
+        datetime created_at
+        datetime updated_at
+    }
+    
+    POS_TRANSACTION_ITEMS {
+        int id PK
+        int transaction_id FK
+        string item_type
+        int item_id
+        string item_name
+        int quantity
+        decimal unit_price
+        decimal total_price
+        text notes
+    }
+    
+    TRADE_INS {
+        int id PK
+        int customer_id FK
+        string device_type
+        string brand
+        string model
+        string condition_assessment
+        text condition_notes
+        decimal estimated_value
+        string status
+        int processed_by
+        datetime created_at
+        datetime updated_at
+    }
+    
+    USED_INVENTORY {
+        int id PK
+        int trade_in_id FK
+        string item_type
+        string brand
+        string model
+        string condition_grade
+        text condition_notes
+        decimal cost_basis
+        decimal selling_price
+        int quantity
+        string status
+        datetime created_at
+        datetime updated_at
+    }
+    
+    REPAIR_SERVICES {
+        int id PK
+        int customer_id FK
+        string device_type
+        string brand
+        string model
+        text issue_description
+        string priority
+        decimal estimated_cost
+        decimal final_cost
+        string status
+        int assigned_technician
+        datetime created_at
+        datetime updated_at
+        datetime completed_at
+    }
+    
+    REPAIR_PARTS {
+        int id PK
+        int repair_id FK
+        string part_name
+        string part_number
+        int quantity_used
+        decimal unit_cost
+        decimal total_cost
+        text notes
+    }
+    
+    REPAIR_STATUS_HISTORY {
+        int id PK
+        int repair_id FK
+        string old_status
+        string new_status
+        text notes
+        int updated_by
+        datetime updated_at
+    }
+    
+    %% Suppliers Database Tables (implied from the system description)
+    SUPPLIERS {
+        int id PK
+        string name
+        string contact_person
+        string email
+        string phone
+        string address
+        string status
+        datetime created_at
+        datetime updated_at
+    }
+    
+    SUPPLIER_PRODUCTS {
+        int id PK
+        int supplier_id FK
+        string product_type
+        int product_id
+        decimal supplier_price
+        int lead_time_days
+        datetime last_updated
+    }
+    
+    %% Relationships
+    
+    %% POS System Relationships
+    CUSTOMERS ||--o{ POS_TRANSACTIONS : "places"
+    CUSTOMERS ||--o{ TRADE_INS : "requests"
+    CUSTOMERS ||--o{ REPAIR_SERVICES : "requests"
+    
+    POS_TRANSACTIONS ||--o{ POS_TRANSACTION_ITEMS : "contains"
+    
+    TRADE_INS ||--o| USED_INVENTORY : "generates"
+    
+    REPAIR_SERVICES ||--o{ REPAIR_PARTS : "uses"
+    REPAIR_SERVICES ||--o{ REPAIR_STATUS_HISTORY : "tracks"
+    
+    %% Supplier Relationships
+    SUPPLIERS ||--o{ SUPPLIER_PRODUCTS : "supplies"
+    
+    %% Component Inventory Relationships (logical connections)
+    %% These represent the inventory management across component types
+    CPU_SPECS ||--o{ POS_TRANSACTION_ITEMS : "sold_as"
+    MOTHERBOARD_SPECS ||--o{ POS_TRANSACTION_ITEMS : "sold_as"
+    RAM_SPECS ||--o{ POS_TRANSACTION_ITEMS : "sold_as"
+    SSD_SPECS ||--o{ POS_TRANSACTION_ITEMS : "sold_as"
+    PSU_SPECS ||--o{ POS_TRANSACTION_ITEMS : "sold_as"
+    CASE_SPECS ||--o{ POS_TRANSACTION_ITEMS : "sold_as"
+    PHONE_SPECS ||--o{ POS_TRANSACTION_ITEMS : "sold_as"
+    
+    USED_INVENTORY ||--o{ POS_TRANSACTION_ITEMS : "sold_as"

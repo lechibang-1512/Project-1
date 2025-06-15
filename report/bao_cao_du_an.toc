@@ -1,0 +1,149 @@
+\babel@toc {vietnamese}{}\relax 
+\contentsline {section}{\numberline {1}TỔNG QUAN DỰ ÁN}{5}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Giới thiệu}{5}{subsection.1.1}%
+\contentsline {subsubsection}{\numberline {1.1.1}Bối cảnh phát triển}{5}{subsubsection.1.1.1}%
+\contentsline {subsubsection}{\numberline {1.1.2}Giải pháp đề xuất}{5}{subsubsection.1.1.2}%
+\contentsline {subsection}{\numberline {1.2}Mục tiêu dự án}{5}{subsection.1.2}%
+\contentsline {subsubsection}{\numberline {1.2.1}Mục tiêu chính}{5}{subsubsection.1.2.1}%
+\contentsline {subsubsection}{\numberline {1.2.2}Mục tiêu kỹ thuật}{6}{subsubsection.1.2.2}%
+\contentsline {subsubsection}{\numberline {1.2.3}Mục tiêu kinh doanh}{6}{subsubsection.1.2.3}%
+\contentsline {subsection}{\numberline {1.3}Phạm vi dự án}{6}{subsection.1.3}%
+\contentsline {subsubsection}{\numberline {1.3.1}Chức năng được triển khai}{6}{subsubsection.1.3.1}%
+\contentsline {subsubsection}{\numberline {1.3.2}Phạm vi kỹ thuật}{7}{subsubsection.1.3.2}%
+\contentsline {subsubsection}{\numberline {1.3.3}Giới hạn phạm vi}{8}{subsubsection.1.3.3}%
+\contentsline {section}{\numberline {2}PHÂN TÍCH HỆ THỐNG}{8}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Use Case Diagram}{8}{subsection.2.1}%
+\contentsline {subsubsection}{\numberline {2.1.1}Mô tả các Actor}{10}{subsubsection.2.1.1}%
+\contentsline {subsubsection}{\numberline {2.1.2}Nhóm chức năng chính}{10}{subsubsection.2.1.2}%
+\contentsline {subsection}{\numberline {2.2}Entity Relationship Diagram (ERD)}{10}{subsection.2.2}%
+\contentsline {subsubsection}{\numberline {2.2.1}Database: master\_specs\_db}{11}{subsubsection.2.2.1}%
+\contentsline {subsubsection}{\numberline {2.2.2}Database: orders\_db}{11}{subsubsection.2.2.2}%
+\contentsline {subsubsection}{\numberline {2.2.3}Database: suppliers\_db}{11}{subsubsection.2.2.3}%
+\contentsline {section}{\numberline {3}KIẾN TRÚC HỆ THỐNG}{11}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Kiến trúc tổng thể}{11}{subsection.3.1}%
+\contentsline {subsubsection}{\numberline {3.1.1}Presentation Layer (Tầng giao diện)}{12}{subsubsection.3.1.1}%
+\contentsline {subsubsection}{\numberline {3.1.2}Application Layer (Tầng ứng dụng)}{12}{subsubsection.3.1.2}%
+\contentsline {subsubsection}{\numberline {3.1.3}Data Layer (Tầng dữ liệu)}{12}{subsubsection.3.1.3}%
+\contentsline {subsection}{\numberline {3.2}Công nghệ sử dụng}{12}{subsection.3.2}%
+\contentsline {subsubsection}{\numberline {3.2.1}Backend Technologies}{12}{subsubsection.3.2.1}%
+\contentsline {subsubsection}{\numberline {3.2.2}Database Technologies}{13}{subsubsection.3.2.2}%
+\contentsline {subsubsection}{\numberline {3.2.3}Frontend Technologies}{13}{subsubsection.3.2.3}%
+\contentsline {subsection}{\numberline {3.3}Cấu trúc thư mục}{13}{subsection.3.3}%
+\contentsline {section}{\numberline {4}CẤU TRÚC CƠ SỞ DỮ LIỆU CHI TIẾT}{14}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Tổng quan cơ sở dữ liệu}{14}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Database: master\_specs\_db - Chi tiết}{14}{subsection.4.2}%
+\contentsline {subsubsection}{\numberline {4.2.1}Bảng CPU\_SPECS}{14}{subsubsection.4.2.1}%
+\contentsline {subsubsection}{\numberline {4.2.2}Bảng MOTHERBOARD\_SPECS}{15}{subsubsection.4.2.2}%
+\contentsline {subsubsection}{\numberline {4.2.3}Các bảng thông số khác}{15}{subsubsection.4.2.3}%
+\contentsline {subsection}{\numberline {4.3}Database: orders\_db - Hệ thống POS}{15}{subsection.4.3}%
+\contentsline {subsubsection}{\numberline {4.3.1}Bảng CUSTOMERS}{15}{subsubsection.4.3.1}%
+\contentsline {subsubsection}{\numberline {4.3.2}Bảng POS\_TRANSACTIONS}{16}{subsubsection.4.3.2}%
+\contentsline {subsubsection}{\numberline {4.3.3}Relationships và Constraints}{16}{subsubsection.4.3.3}%
+\contentsline {section}{\numberline {5}CHỨC NĂNG HỆ THỐNG CHI TIẾT}{16}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Component Viewer - Hệ thống xem linh kiện}{17}{subsection.5.1}%
+\contentsline {subsubsection}{\numberline {5.1.1}Dashboard tổng quan}{17}{subsubsection.5.1.1}%
+\contentsline {subsubsection}{\numberline {5.1.2}Xem danh sách linh kiện}{17}{subsubsection.5.1.2}%
+\contentsline {subsubsection}{\numberline {5.1.3}Tìm kiếm và lọc nâng cao}{17}{subsubsection.5.1.3}%
+\contentsline {subsubsection}{\numberline {5.1.4}Xem chi tiết thông số}{18}{subsubsection.5.1.4}%
+\contentsline {subsection}{\numberline {5.2}Inventory Management - Quản lý kho hàng nâng cao}{18}{subsection.5.2}%
+\contentsline {subsubsection}{\numberline {5.2.1}Dashboard inventory tổng quan}{18}{subsubsection.5.2.1}%
+\contentsline {subsubsection}{\numberline {5.2.2}Quản lý kho hàng chi tiết}{19}{subsubsection.5.2.2}%
+\contentsline {subsubsection}{\numberline {5.2.3}Stock Tracking và Alerts}{19}{subsubsection.5.2.3}%
+\contentsline {subsubsection}{\numberline {5.2.4}Advanced Inventory Features}{19}{subsubsection.5.2.4}%
+\contentsline {subsection}{\numberline {5.3}Point of Sale (POS) System - Hệ thống bán hàng tích hợp}{20}{subsection.5.3}%
+\contentsline {subsubsection}{\numberline {5.3.1}POS Interface Architecture}{20}{subsubsection.5.3.1}%
+\contentsline {subsubsection}{\numberline {5.3.2}Sales Interface Features}{21}{subsubsection.5.3.2}%
+\contentsline {subsubsection}{\numberline {5.3.3}Customer Management Integration}{22}{subsubsection.5.3.3}%
+\contentsline {subsubsection}{\numberline {5.3.4}Payment Processing System}{22}{subsubsection.5.3.4}%
+\contentsline {subsubsection}{\numberline {5.3.5}Invoice \& Receipt System}{23}{subsubsection.5.3.5}%
+\contentsline {subsubsection}{\numberline {5.3.6}Trade-in Management}{23}{subsubsection.5.3.6}%
+\contentsline {subsubsection}{\numberline {5.3.7}Repair Services}{24}{subsubsection.5.3.7}%
+\contentsline {subsubsection}{\numberline {5.3.8}Used Inventory Management}{24}{subsubsection.5.3.8}%
+\contentsline {section}{\numberline {6}HỆ THỐNG BACKUP VÀ RESTORE NÂNG CAO}{24}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Kiến trúc Backup System}{24}{subsection.6.1}%
+\contentsline {subsubsection}{\numberline {6.1.1}Backup Strategy}{24}{subsubsection.6.1.1}%
+\contentsline {subsection}{\numberline {6.2}Database Backup Scripts - Chi tiết kỹ thuật}{25}{subsection.6.2}%
+\contentsline {subsubsection}{\numberline {6.2.1}dump\_databases.sh - Main Backup Script}{25}{subsubsection.6.2.1}%
+\contentsline {subsubsection}{\numberline {6.2.2}restore\_databases.sh - Intelligent Restore}{26}{subsubsection.6.2.2}%
+\contentsline {subsubsection}{\numberline {6.2.3}db\_manager.sh - Interactive Management Tool}{27}{subsubsection.6.2.3}%
+\contentsline {subsection}{\numberline {6.3}Backup Security \& Compliance}{28}{subsection.6.3}%
+\contentsline {subsubsection}{\numberline {6.3.1}Security Measures}{28}{subsubsection.6.3.1}%
+\contentsline {subsubsection}{\numberline {6.3.2}Disaster Recovery Plan}{28}{subsubsection.6.3.2}%
+\contentsline {section}{\numberline {7}API ENDPOINTS VÀ INTEGRATION}{28}{section.7}%
+\contentsline {subsection}{\numberline {7.1}RESTful API Architecture}{28}{subsection.7.1}%
+\contentsline {subsubsection}{\numberline {7.1.1}API Response Format}{28}{subsubsection.7.1.1}%
+\contentsline {subsection}{\numberline {7.2}Component Management APIs}{29}{subsection.7.2}%
+\contentsline {subsubsection}{\numberline {7.2.1}Component CRUD Operations}{29}{subsubsection.7.2.1}%
+\contentsline {subsubsection}{\numberline {7.2.2}Advanced Search API}{29}{subsubsection.7.2.2}%
+\contentsline {subsection}{\numberline {7.3}POS System APIs}{30}{subsection.7.3}%
+\contentsline {subsubsection}{\numberline {7.3.1}Transaction Processing APIs}{30}{subsubsection.7.3.1}%
+\contentsline {subsubsection}{\numberline {7.3.2}Complete Transaction Processing}{30}{subsubsection.7.3.2}%
+\contentsline {subsection}{\numberline {7.4}Inventory Management APIs}{31}{subsection.7.4}%
+\contentsline {subsubsection}{\numberline {7.4.1}Inventory Operations}{31}{subsubsection.7.4.1}%
+\contentsline {subsection}{\numberline {7.5}Trade-in và Repair APIs}{31}{subsection.7.5}%
+\contentsline {subsubsection}{\numberline {7.5.1}Trade-in Management}{31}{subsubsection.7.5.1}%
+\contentsline {subsubsection}{\numberline {7.5.2}Repair Service APIs}{32}{subsubsection.7.5.2}%
+\contentsline {subsection}{\numberline {7.6}API Security \& Authentication}{32}{subsection.7.6}%
+\contentsline {subsubsection}{\numberline {7.6.1}Authentication Strategy}{32}{subsubsection.7.6.1}%
+\contentsline {subsubsection}{\numberline {7.6.2}Input Validation \& Sanitization}{32}{subsubsection.7.6.2}%
+\contentsline {section}{\numberline {8}GIAO DIỆN NGƯỜI DÙNG}{33}{section.8}%
+\contentsline {subsection}{\numberline {8.1}Responsive Design}{33}{subsection.8.1}%
+\contentsline {subsection}{\numberline {8.2}Color Scheme và Icons}{33}{subsection.8.2}%
+\contentsline {subsection}{\numberline {8.3}User Experience Features}{33}{subsection.8.3}%
+\contentsline {section}{\numberline {9}BẢO MẬT VÀ HIỆU SUẤT}{34}{section.9}%
+\contentsline {subsection}{\numberline {9.1}Database Security}{34}{subsection.9.1}%
+\contentsline {subsection}{\numberline {9.2}Performance Optimization}{34}{subsection.9.2}%
+\contentsline {subsection}{\numberline {9.3}Error Handling}{34}{subsection.9.3}%
+\contentsline {section}{\numberline {10}DEPLOYMENT VÀ OPERATIONS}{34}{section.10}%
+\contentsline {subsection}{\numberline {10.1}Installation Requirements}{34}{subsection.10.1}%
+\contentsline {subsection}{\numberline {10.2}Environment Setup}{35}{subsection.10.2}%
+\contentsline {subsection}{\numberline {10.3}Production Deployment}{35}{subsection.10.3}%
+\contentsline {section}{\numberline {11}TESTING VÀ QUALITY ASSURANCE TOÀN DIỆN}{35}{section.11}%
+\contentsline {subsection}{\numberline {11.1}Testing Strategy \& Methodology}{35}{subsection.11.1}%
+\contentsline {subsubsection}{\numberline {11.1.1}Multi-tier Testing Approach}{35}{subsubsection.11.1.1}%
+\contentsline {subsubsection}{\numberline {11.1.2}Database Testing Strategy}{36}{subsubsection.11.1.2}%
+\contentsline {subsection}{\numberline {11.2}POS System Testing}{37}{subsection.11.2}%
+\contentsline {subsubsection}{\numberline {11.2.1}Transaction Flow Testing}{37}{subsubsection.11.2.1}%
+\contentsline {subsubsection}{\numberline {11.2.2}POS Integration Testing}{37}{subsubsection.11.2.2}%
+\contentsline {subsection}{\numberline {11.3}Frontend Testing}{38}{subsection.11.3}%
+\contentsline {subsubsection}{\numberline {11.3.1}UI/UX Testing}{38}{subsubsection.11.3.1}%
+\contentsline {subsubsection}{\numberline {11.3.2}JavaScript Testing}{39}{subsubsection.11.3.2}%
+\contentsline {subsection}{\numberline {11.4}Backup System Testing}{40}{subsection.11.4}%
+\contentsline {subsubsection}{\numberline {11.4.1}Backup Integrity Testing}{40}{subsubsection.11.4.1}%
+\contentsline {subsection}{\numberline {11.5}Performance Testing}{41}{subsection.11.5}%
+\contentsline {subsubsection}{\numberline {11.5.1}Load Testing Results}{41}{subsubsection.11.5.1}%
+\contentsline {subsubsection}{\numberline {11.5.2}Stress Testing}{41}{subsubsection.11.5.2}%
+\contentsline {subsection}{\numberline {11.6}Security Testing}{42}{subsection.11.6}%
+\contentsline {subsubsection}{\numberline {11.6.1}Vulnerability Assessment}{42}{subsubsection.11.6.1}%
+\contentsline {section}{\numberline {12}KẾT QUẢ ĐẠT ĐƯỢC}{42}{section.12}%
+\contentsline {subsection}{\numberline {12.1}Functional Achievements}{42}{subsection.12.1}%
+\contentsline {subsection}{\numberline {12.2}Technical Achievements}{42}{subsection.12.2}%
+\contentsline {subsection}{\numberline {12.3}Performance Metrics}{42}{subsection.12.3}%
+\contentsline {section}{\numberline {13}HƯỚNG PHÁT TRIỂN TƯƠNG LAI}{42}{section.13}%
+\contentsline {subsection}{\numberline {13.1}Short-term Improvements}{42}{subsection.13.1}%
+\contentsline {subsection}{\numberline {13.2}Long-term Vision}{43}{subsection.13.2}%
+\contentsline {subsection}{\numberline {13.3}Scalability Considerations}{43}{subsection.13.3}%
+\contentsline {section}{\numberline {14}KẾT LUẬN VÀ ĐÁNH GIÁ TỔNG QUAN}{43}{section.14}%
+\contentsline {subsection}{\numberline {14.1}Tổng kết dự án}{43}{subsection.14.1}%
+\contentsline {subsubsection}{\numberline {14.1.1}Mức độ hoàn thành các mục tiêu}{44}{subsubsection.14.1.1}%
+\contentsline {subsection}{\numberline {14.2}Điểm mạnh của hệ thống}{44}{subsection.14.2}%
+\contentsline {subsubsection}{\numberline {14.2.1}Architectural Strengths}{44}{subsubsection.14.2.1}%
+\contentsline {subsubsection}{\numberline {14.2.2}Business Value}{44}{subsubsection.14.2.2}%
+\contentsline {subsubsection}{\numberline {14.2.3}Technical Excellence}{44}{subsubsection.14.2.3}%
+\contentsline {subsection}{\numberline {14.3}Lessons Learned}{45}{subsection.14.3}%
+\contentsline {subsubsection}{\numberline {14.3.1}Technical Insights}{45}{subsubsection.14.3.1}%
+\contentsline {subsubsection}{\numberline {14.3.2}Project Management}{45}{subsubsection.14.3.2}%
+\contentsline {subsection}{\numberline {14.4}Hướng phát triển tương lai}{45}{subsection.14.4}%
+\contentsline {subsubsection}{\numberline {14.4.1}Short-term Enhancements (3-6 months)}{45}{subsubsection.14.4.1}%
+\contentsline {subsubsection}{\numberline {14.4.2}Long-term Vision (6-18 months)}{46}{subsubsection.14.4.2}%
+\contentsline {subsection}{\numberline {14.5}Scalability Roadmap}{46}{subsection.14.5}%
+\contentsline {subsubsection}{\numberline {14.5.1}Performance Scaling}{46}{subsubsection.14.5.1}%
+\contentsline {subsection}{\numberline {14.6}Impact Assessment}{46}{subsection.14.6}%
+\contentsline {subsubsection}{\numberline {14.6.1}Quantitative Impact}{46}{subsubsection.14.6.1}%
+\contentsline {subsubsection}{\numberline {14.6.2}Qualitative Benefits}{47}{subsubsection.14.6.2}%
+\contentsline {subsection}{\numberline {14.7}Acknowledgments}{47}{subsection.14.7}%
+\contentsline {section}{\numberline {15}PHỤ LỤC}{47}{section.15}%
+\contentsline {subsection}{\numberline {15.1}Hướng dẫn tạo diagrams}{47}{subsection.15.1}%
+\contentsline {subsubsection}{\numberline {15.1.1}Use Case Diagram}{47}{subsubsection.15.1.1}%
+\contentsline {subsubsection}{\numberline {15.1.2}Entity Relationship Diagram}{48}{subsubsection.15.1.2}%
+\contentsline {subsection}{\numberline {15.2}Database Schema Reference}{48}{subsection.15.2}%

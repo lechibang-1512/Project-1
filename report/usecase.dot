@@ -1,0 +1,161 @@
+digraph UseCase {
+    rankdir=LR;
+    node [shape=ellipse, style=filled, fillcolor=lightblue];
+    
+    // Actors
+    subgraph cluster_actors {
+        label="Actors";
+        style=filled;
+        color=lightgrey;
+        
+        Customer [shape=box, style=filled, fillcolor=lightgreen, label="Customer"];
+        Staff [shape=box, style=filled, fillcolor=lightgreen, label="Staff/Cashier"];
+        Technician [shape=box, style=filled, fillcolor=lightgreen, label="Technician"];
+        Admin [shape=box, style=filled, fillcolor=lightgreen, label="Administrator"];
+    }
+    
+    // Use Cases - Component Management
+    subgraph cluster_components {
+        label="Component Management";
+        style=filled;
+        color=lightyellow;
+        
+        ViewComponents [label="View Component\nSpecifications"];
+        SearchComponents [label="Search Components"];
+        FilterComponents [label="Filter by Category"];
+        CompareComponents [label="Compare\nComponents"];
+    }
+    
+    // Use Cases - Inventory Management
+    subgraph cluster_inventory {
+        label="Inventory Management";
+        style=filled;
+        color=lightcyan;
+        
+        ViewInventory [label="View Inventory"];
+        UpdateStock [label="Update Stock\nLevels"];
+        BulkUpdate [label="Bulk Update\nInventory"];
+        LowStockAlert [label="Monitor Low\nStock Alerts"];
+        ManageUsedInventory [label="Manage Used\nInventory"];
+    }
+    
+    // Use Cases - POS System
+    subgraph cluster_pos {
+        label="Point of Sale System";
+        style=filled;
+        color=lightpink;
+        
+        ProcessSale [label="Process Sale\nTransaction"];
+        ManageCart [label="Manage Shopping\nCart"];
+        HandlePayment [label="Handle Multiple\nPayment Methods"];
+        GenerateInvoice [label="Generate Invoice"];
+        CustomerManagement [label="Manage Customer\nInformation"];
+        WalkInCustomer [label="Handle Walk-in\nCustomers"];
+    }
+    
+    // Use Cases - Trade-in System
+    subgraph cluster_tradein {
+        label="Trade-in Management";
+        style=filled;
+        color=lavender;
+        
+        CreateTradeIn [label="Create Trade-in\nRequest"];
+        EvaluateDevice [label="Evaluate Device\nCondition"];
+        ProcessTradeIn [label="Process Trade-in\nTransaction"];
+        UpdateTradeInStatus [label="Update Trade-in\nStatus"];
+    }
+    
+    // Use Cases - Repair Services
+    subgraph cluster_repair {
+        label="Repair Services";
+        style=filled;
+        color=lightsteelblue;
+        
+        CreateRepairOrder [label="Create Repair\nOrder"];
+        AssignTechnician [label="Assign\nTechnician"];
+        UpdateRepairStatus [label="Update Repair\nStatus"];
+        ManageRepairParts [label="Manage Repair\nParts"];
+        TrackRepairHistory [label="Track Repair\nHistory"];
+        SetPriority [label="Set Repair\nPriority"];
+    }
+    
+    // Use Cases - System Administration
+    subgraph cluster_admin {
+        label="System Administration";
+        style=filled;
+        color=mistyrose;
+        
+        BackupDatabase [label="Backup Database"];
+        RestoreDatabase [label="Restore Database"];
+        ManageUsers [label="Manage Users"];
+        SystemMonitoring [label="System\nMonitoring"];
+        DatabaseMaintenance [label="Database\nMaintenance"];
+    }
+    
+    // Relationships - Customer
+    Customer -> ViewComponents;
+    Customer -> SearchComponents;
+    Customer -> FilterComponents;
+    Customer -> CompareComponents;
+    Customer -> CreateTradeIn;
+    Customer -> CreateRepairOrder;
+    
+    // Relationships - Staff/Cashier
+    Staff -> ViewComponents;
+    Staff -> SearchComponents;
+    Staff -> ViewInventory;
+    Staff -> UpdateStock;
+    Staff -> ManageUsedInventory;
+    Staff -> ProcessSale;
+    Staff -> ManageCart;
+    Staff -> HandlePayment;
+    Staff -> GenerateInvoice;
+    Staff -> CustomerManagement;
+    Staff -> WalkInCustomer;
+    Staff -> CreateTradeIn;
+    Staff -> EvaluateDevice;
+    Staff -> ProcessTradeIn;
+    Staff -> UpdateTradeInStatus;
+    Staff -> CreateRepairOrder;
+    
+    // Relationships - Technician
+    Technician -> ViewComponents;
+    Technician -> ViewInventory;
+    Technician -> UpdateRepairStatus;
+    Technician -> ManageRepairParts;
+    Technician -> TrackRepairHistory;
+    Technician -> SetPriority;
+    
+    // Relationships - Administrator
+    Admin -> ViewComponents;
+    Admin -> SearchComponents;
+    Admin -> ViewInventory;
+    Admin -> UpdateStock;
+    Admin -> BulkUpdate;
+    Admin -> LowStockAlert;
+    Admin -> ManageUsedInventory;
+    Admin -> AssignTechnician;
+    Admin -> BackupDatabase;
+    Admin -> RestoreDatabase;
+    Admin -> ManageUsers;
+    Admin -> SystemMonitoring;
+    Admin -> DatabaseMaintenance;
+    
+    // Include relationships
+    edge [style=dashed, arrowhead=open, label="<<include>>"];
+    ProcessSale -> ManageCart;
+    ProcessSale -> HandlePayment;
+    ProcessSale -> GenerateInvoice;
+    ProcessSale -> UpdateStock;
+    
+    ProcessTradeIn -> EvaluateDevice;
+    ProcessTradeIn -> ManageUsedInventory;
+    
+    CreateRepairOrder -> AssignTechnician;
+    UpdateRepairStatus -> TrackRepairHistory;
+    
+    // Extend relationships
+    edge [style=dashed, arrowhead=open, label="<<extend>>"];
+    CustomerManagement -> WalkInCustomer;
+    LowStockAlert -> UpdateStock;
+}
